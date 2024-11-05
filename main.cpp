@@ -1,5 +1,6 @@
 #include "device.h"
 #include "hash.h"
+#include "utils.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -19,24 +20,6 @@ std::string generate_aes_key(size_t length)
     std::vector<unsigned char> key(length);
     RAND_bytes(key.data(), length);
     return std::string(reinterpret_cast<char*>(key.data()), length);
-}
-
-std::string encrypt_aes(const std::string& plaintext, const std::string& aes_key) 
-{
-    AES_KEY encrypt_key;
-    AES_set_encrypt_key(reinterpret_cast<const unsigned char*>(aes_key.data()), 256, &encrypt_key);
-
-    size_t padded_size = ((plaintext.size() + AES_BLOCK_SIZE) / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
-    std::vector<unsigned char> ciphertext(padded_size);
-    
-    for (size_t i = 0; i < padded_size; i += AES_BLOCK_SIZE) 
-    {
-        AES_encrypt(reinterpret_cast<const unsigned char*>(plaintext.data()) + i,
-                    ciphertext.data() + i,
-                    &encrypt_key);
-    }
-
-    return std::string(reinterpret_cast<char*>(ciphertext.data()), padded_size);
 }
 
 std::string sign_data(RSA* private_key, const std::string& data) 
@@ -107,7 +90,7 @@ void generate_license(const std::string& private_key_path, const std::string& li
 
     std::string plaintext = license_info.dump();
 
-    std::string encrypted_data = encrypt_aes(plaintext, aes_key);
+    std::string encrypted_data = encrypt_info(plaintext, aes_key);
     std::string signature = sign_data(private_key, plaintext);
 
     auto public_key = generate_public_key(private_key);

@@ -1,6 +1,7 @@
 #include "activator.h"
 #include "device.h"
 #include "hash.h"
+#include "utils.h"
 #include "license_parser.h"
 #include "license_info.h"
 #include "json.hpp"
@@ -68,29 +69,6 @@ bool verify_signature(const std::string& signature, const std::string& data, RSA
     return true;
 }
 
-std::string decrypt_aes(const std::string& encrypted_data, const std::string& confused_aes_key) 
-{
-    if (confused_aes_key.size() < 32) 
-    {
-        return "";
-    }
-
-    std::string aes_key = confused_aes_key.substr(8, 32);
-
-    AES_KEY decrypt_key;
-    AES_set_decrypt_key(reinterpret_cast<const unsigned char*>(aes_key.data()), 256, &decrypt_key);
-
-    size_t decrypted_size = (encrypted_data.size() / AES_BLOCK_SIZE) * AES_BLOCK_SIZE;
-    std::vector<unsigned char> decrypted_data(decrypted_size);
-
-    for (size_t i = 0; i < decrypted_size; i += AES_BLOCK_SIZE) 
-    {
-        AES_decrypt(reinterpret_cast<const unsigned char*>(encrypted_data.data()) + i, decrypted_data.data() + i, &decrypt_key);
-    }
-
-    return std::string(reinterpret_cast<char*>(decrypted_data.data()), decrypted_size);
-}
-
 bool validate_license(const LicenseHeader& header, const LicenseData& data)
 {
     const unsigned char* pub_key_data = reinterpret_cast<const unsigned char*>(data.publicKey.data());
@@ -101,7 +79,8 @@ bool validate_license(const LicenseHeader& header, const LicenseData& data)
         return false;
     }
 
-    std::string license_info_json = decrypt_aes(data.encryptedData, data.confusedAesKey);
+    auto aes_key = data.confusedAesKey.substr(8, 32);
+    std::string license_info_json = decrypt_info(data.encryptedData, aes_key);
     std::string license_data = json::parse(license_info_json.c_str()).dump();
     if (!verify_signature(data.signature, license_data, rsa_pub_key))
     {
