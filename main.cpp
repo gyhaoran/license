@@ -1,5 +1,5 @@
-#include "activator.h"
 #include "device.h"
+#include "hash.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -41,12 +41,10 @@ std::string encrypt_aes(const std::string& plaintext, const std::string& aes_key
 
 std::string sign_data(RSA* private_key, const std::string& data) 
 {
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-    SHA256(reinterpret_cast<const unsigned char*>(data.c_str()), data.size(), hash);
-
+    auto hash = computeSha256(data);    
     unsigned char signature[RSA_size(private_key)];
     unsigned int signature_length;
-    RSA_sign(NID_sha256, hash, SHA256_DIGEST_LENGTH, signature, &signature_length, private_key);
+    RSA_sign(NID_sha256, reinterpret_cast<unsigned char*>(hash.data()), SHA256_DIGEST_LENGTH, signature, &signature_length, private_key);
 
     return std::string(reinterpret_cast<char*>(signature), signature_length);
 }
@@ -108,11 +106,12 @@ void generate_license(const std::string& private_key_path, const std::string& li
     };
 
     std::string plaintext = license_info.dump();
+
     std::string encrypted_data = encrypt_aes(plaintext, aes_key);
     std::string signature = sign_data(private_key, plaintext);
 
     auto public_key = generate_public_key(private_key);
-    uint32_t public_key_length = public_key.length();
+    uint32_t public_key_length = public_key.size();
     uint32_t encrypted_data_length = encrypted_data.size();
     uint32_t signature_length = signature.size();
     uint32_t confused_aes_key_length = confused_aes_key.size();

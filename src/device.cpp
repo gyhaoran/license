@@ -1,7 +1,5 @@
 #include "device.h"
-#include <sstream>
-#include <iomanip>
-#include <openssl/sha.h>
+#include "hash.h"
 #include <cpuid.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -69,24 +67,6 @@ std::string get_mac_address(const std::string& interface_name)
     freeifaddrs(ifaddr);
 
     return mac_address.empty() ? "MAC Address not found" : mac_address;
-}
-
-std::string computeSha256(const std::string& data)
-{
-    unsigned char hash[SHA256_DIGEST_LENGTH];
-    SHA256_CTX sha256Context;
-    SHA256_Init(&sha256Context);
-    SHA256_Update(&sha256Context, data.c_str(), data.size());
-    SHA256_Final(hash, &sha256Context);
-
-    std::stringstream hashStream;
-    hashStream << std::hex << std::setfill('0');
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; ++i)
-    {
-        hashStream << std::setw(2) << static_cast<int>(hash[i]);
-    }
-
-    return hashStream.str();
 }
 
 std::string get_device_hash(bool is_server, const std::string& ether_name)

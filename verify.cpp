@@ -7,8 +7,9 @@ int main(int argc, char** argv)
 {
     if (!verify("./license.dat"))
     {
-        std::cerr << "Liicense Activate failed\n";
+        std::cerr << "License Activate failed\n";
     }
 
+    std::cout << "License Activate success\n";
     return 0;
 }
