@@ -1,5 +1,4 @@
 #include <pybind11/pybind11.h>
-#include <Python.h>
 #include "verify.h"
 
 namespace py = pybind11;
