@@ -1,4 +1,4 @@
-#include "activator.h"
+#include "verify.h"
 #include <iostream>
 
 using namespace lic;

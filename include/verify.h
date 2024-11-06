@@ -6,11 +6,6 @@
 namespace lic
 {
 
-struct LicenseHeader;
-struct LicenseData;
-
-bool validate_license(const LicenseHeader& header, const LicenseData& data);
-
 bool verify(const std::string& license_file);
 
 } // namespace lic

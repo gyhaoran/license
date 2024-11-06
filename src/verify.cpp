@@ -1,4 +1,4 @@
-#include "activator.h"
+#include "verify.h"
 #include "device.h"
 #include "hash.h"
 #include "utils.h"
