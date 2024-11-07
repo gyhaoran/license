@@ -28,7 +28,6 @@ bool is_license_valid(const std::string& issue_date, const std::string& expire_d
 {
     auto now = std::chrono::system_clock::now();
     auto now_time_t = std::chrono::system_clock::to_time_t(now);
-    std::tm* now_tm = std::localtime(&now_time_t);
 
     std::istringstream issue_stream(issue_date);
     std::istringstream expiration_stream(expire_date);

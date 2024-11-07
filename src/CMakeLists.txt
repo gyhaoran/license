@@ -1,2 +1,2 @@
 add_subdirectory(license)
-# add_subdirectory(license-server)
+add_subdirectory(license-server)

@@ -6,7 +6,9 @@ include_directories(
 )
 
 add_executable(gen_license gen_license.cpp)
+add_executable(gen_server_license gen_server_license.cpp)
 add_executable(verify verify.cpp)
 
 target_link_libraries(verify PRIVATE license)
 target_link_libraries(gen_license PRIVATE license)
+target_link_libraries(gen_server_license PRIVATE license)

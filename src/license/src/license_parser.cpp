@@ -1,4 +1,6 @@
 #include "license_parser.h"
+#include "utils.h"
+
 #include <iostream>
 #include <fstream>
 
@@ -32,6 +34,20 @@ bool parse_license_file(const std::string& filename, LicenseHeader& header, Lice
     return true;
 }
 
+std::string get_license_info(const std::string& license_file)
+{
+    LicenseHeader header;
+    LicenseData data;
+    if (!parse_license_file(license_file, header, data))
+    {
+        return "";
+    }
+
+    auto aes_key = data.confusedAesKey.substr(8, 32);
+    std::string license_info = decrypt_info(data.encryptedData, aes_key);
+
+    return license_info;
+}
 
 } // namespace lic
 

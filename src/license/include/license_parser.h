@@ -26,6 +26,7 @@ struct LicenseData
 };
 
 bool parse_license_file(const std::string& filename, LicenseHeader& header, LicenseData& data);
+std::string get_license_info(const std::string& filename);
 
 } // namespace lic
 
