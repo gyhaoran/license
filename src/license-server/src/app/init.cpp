@@ -33,6 +33,8 @@ void init()
     auto license_info = get_license_info("./license.dat");
     auto info = nlohmann::json::parse(license_info);
 
+    std::cout << info << '\n';
+
     auto issue_date = info["issue_date"];
     auto expire_date = info["expire_date"];
 

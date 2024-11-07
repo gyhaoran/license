@@ -109,8 +109,9 @@ void generate_license(const std::string& private_key_path, const std::string& li
         {"issue_date", "20240101 000000"},
         {"expire_date", "20250101 000000"},
         {"devices", {
-            {device_hash, {1, "ens33"}},
-            {generate_random_id(32), {1, "ens0"}},
+            {device_hash, 1},
+            {generate_random_id(32), 2},
+            {generate_random_id(32), 3},
         }}
     };
 

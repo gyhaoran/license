@@ -14,7 +14,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${LICENSE_PATH}/include
 )
 
-target_link_libraries(${PROJECT_NAME} hv_static OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(${PROJECT_NAME} license hv_static OpenSSL::SSL OpenSSL::Crypto)
 
 # Install rules
 install(TARGETS ${PROJECT_NAME}
