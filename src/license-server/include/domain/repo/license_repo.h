@@ -11,16 +11,19 @@ namespace lic
 {
 
 struct LicensePeriod;
+using DeviceInfos = std::map<DeviceId, DeviceInfo>;
 
 DEF_SINGLETON(LicenseRepo)
 {
     void add_device(const DeviceId&, const DeviceInfo&);
     void remove_device(const DeviceId&);
+    void reset_devices(const DeviceInfos&);
+
     void release_inst(const DeviceId&);
 
     void set_license_period(const LicensePeriod&);
 
-    bool validate(const DeviceId&, ::nlohmann::json& rsp);
+    bool validate(const DeviceId&, ::nlohmann::json&);
 
     void clear();
 
@@ -32,7 +35,7 @@ DEF_SINGLETON(LicenseRepo)
 
 private:
     LicensePeriod period_{};
-    std::map<DeviceId, DeviceInfo> devices_{};
+    DeviceInfos devices_{};
 };
     
 } // namespace lic
