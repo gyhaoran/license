@@ -1,7 +1,7 @@
 #include "service/license_server.h"
 #include "domain/handler/auth_req_handler.h"
 #include "domain/handler/instance_rel_handler.h"
-#include "domain/event_id.h"
+#include "domain/event/event.h"
 
 #include <hv/HttpServer.h>
 #include <hv/HttpResponseWriter.h>
@@ -23,44 +23,61 @@ std::map<EventId, BaseMsgHandler*> all_handlers = {
     {EV_INSTANCE_REL,         new InstanceRelHandler()},
 };
 
-bool handle_http_msg(EventId id, const std::string& msg)
+std::string handle_http_msg(EventId id, const std::string& msg)
 {
     auto iter = all_handlers.find(id);
     if (iter != all_handlers.end())
     {
-        return iter->second->handle(msg);
+        Event event(id, msg);
+        iter->second->handle(event);
+
+        return event.get_rsp_msg();
     }
 
-    return false;
+    return R"({"status": "Failure", "message": "unkonwn"})";
 }
 
-void send_http_rsp(const HttpResponseWriterPtr& writer, const std::string& status, const std::string& message)
+void send_http_rsp(const HttpResponseWriterPtr& writer, const std::string& rsp)
 {
-    json response;
-    response["status"] = status;
-    response["message"] = message;
-    writer->End(response.dump());
+    writer->End(rsp);
 }
 
+void handle_authen_req(const std::string& msg, const HttpResponseWriterPtr& writer)
+{
+    try 
+    {
+        auto rsp = handle_http_msg(EV_AUTHRIZATION_REQ, msg);
+        writer->End(rsp);
+    } 
+    catch (const std::exception& e) 
+    {
+        writer->End(R"({"status": "Failure", "message": "unkonwn"})");
+    }
 }
+
+void handle_inst_release(const std::string& msg, const HttpResponseWriterPtr& writer)
+{
+    try 
+    {
+        auto rsp = handle_http_msg(EV_INSTANCE_REL, msg);
+        writer->End(rsp);
+    } 
+    catch (const std::exception& e) 
+    {
+        writer->End(R"({"status": "Failure", "message": "unkonwn"})");
+    }
+}
+
+} // namespace
 
 LicenseServer::LicenseServer(int port) : port_{port}, service_{new ::hv::HttpService()} 
 {
     service_->POST("/auth/license",  [](const HttpRequestPtr& req, const HttpResponseWriterPtr& writer) {
-        json response;
-        try 
-        {            
-            if (!handle_http_msg(EV_AUTHRIZATION_REQ, req->body))
-            {
-                send_http_rsp(writer, "faliure", "Device not authorized or max instance limit reached.");
-                return;
-            }
-            send_http_rsp(writer, "success", "Authorization successful.");
-        } 
-        catch (const std::exception& e) 
-        {
-            send_http_rsp(writer, "faliure", "Invalid request format.");
-        }
+        handle_authen_req(req->body, writer);
+    });
+
+    service_->POST("/inst/rel",  [](const HttpRequestPtr& req, const HttpResponseWriterPtr& writer) {
+        handle_inst_release(req->body, writer);
     });
 }
 

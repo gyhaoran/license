@@ -1,6 +1,7 @@
 project(license-server)
 
 find_package(OpenSSL REQUIRED)
+find_package(Boost REQUIRED COMPONENTS serialization)
 
 file(GLOB_RECURSE all_files
     src/*.cpp
@@ -14,7 +15,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${LICENSE_PATH}/include
 )
 
-target_link_libraries(${PROJECT_NAME} license hv_static OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(${PROJECT_NAME} license hv_static OpenSSL::SSL OpenSSL::Crypto Boost::serialization)
 
 # Install rules
 install(TARGETS ${PROJECT_NAME}

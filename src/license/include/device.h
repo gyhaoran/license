@@ -6,7 +6,9 @@
 namespace lic
 {
     
-std::string get_device_hash(bool, const std::string&);
+std::string gen_device_hash(const std::string& cpu_id, const std::string& mac_addr);
+
+std::string get_device_hash(bool is_server, const std::string& mac_addr);
 
 } // namespace lic
 

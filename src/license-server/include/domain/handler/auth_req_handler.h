@@ -9,7 +9,7 @@ namespace lic
 struct AuthReqHandler : JsonMsgHandler
 {
 private:
-    bool handle(const nlohmann::json& msg) override;
+    bool handle(Event& event, const nlohmann::json& msg) override;
 };
 
 

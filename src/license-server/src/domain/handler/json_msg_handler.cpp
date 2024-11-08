@@ -3,11 +3,11 @@
 namespace lic
 {
 
-bool JsonMsgHandler::handle(const std::string& msg)
+bool JsonMsgHandler::handle(Event& event)
 {
-    nlohmann::json req = nlohmann::json::parse(msg);
+    nlohmann::json req = nlohmann::json::parse(event.get_msg());
 
-    return handle(req);
+    return handle(event, req);
 }
 
 } // namespace lic

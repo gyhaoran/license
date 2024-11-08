@@ -4,6 +4,7 @@
 #include "domain/device_info.h"
 #include "domain/license_period.h"
 #include "infra/singleton.h"
+#include "json.hpp"
 #include <map>
 
 namespace lic
@@ -15,12 +16,19 @@ DEF_SINGLETON(LicenseRepo)
 {
     void add_device(const DeviceId&, const DeviceInfo&);
     void remove_device(const DeviceId&);
+    void release_inst(const DeviceId&);
 
-    void set_license_period(const LicensePeriod& period);
-    
-    void validate();
+    void set_license_period(const LicensePeriod&);
+
+    bool validate(const DeviceId&, ::nlohmann::json& rsp);
 
     void clear();
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int version) 
+    {
+        ar & boost::serialization::make_nvp("devices", devices_);
+    }
 
 private:
     LicensePeriod period_{};

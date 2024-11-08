@@ -9,7 +9,7 @@ namespace lic
 template<typename T>
 struct Singleton
 {
-    static T& getInstance()
+    static T& get_instance()
     {
         static T instance;
         return instance;

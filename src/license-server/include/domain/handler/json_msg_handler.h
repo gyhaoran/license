@@ -10,8 +10,8 @@ namespace lic
 struct JsonMsgHandler : BaseMsgHandler
 {
 private:
-    bool handle(const std::string& msg) override;
-    virtual bool handle(const nlohmann::json& msg) = 0;
+    bool handle(Event& event) override;
+    virtual bool handle(Event& event, const nlohmann::json& msg) = 0;
 };
 
 

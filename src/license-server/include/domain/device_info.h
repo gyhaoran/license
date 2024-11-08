@@ -1,6 +1,10 @@
 #ifndef F0C959E2_3C62_4B5F_A7A3_9BD80FA17F66
 #define F0C959E2_3C62_4B5F_A7A3_9BD80FA17F66
 
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/nvp.hpp>
 #include <string>
 
 namespace lic
@@ -13,6 +17,14 @@ struct DeviceInfo
     std::string hash{""};
     int max_instance{1};
     int current_instance{0};
+
+    template <class Archive>
+    void serialize(Archive& ar, const unsigned int version)
+    {
+        ar & boost::serialization::make_nvp("hash", hash);
+        ar & boost::serialization::make_nvp("max_instance", max_instance);
+        ar & boost::serialization::make_nvp("current_instance", current_instance);
+    }
 };
 
 } // namespace lic

@@ -1,14 +1,14 @@
 #ifndef D165C218_C7B9_4DD6_9C9D_F86A470C8226
 #define D165C218_C7B9_4DD6_9C9D_F86A470C8226
 
-#include <string>
+#include <domain/event/event.h>
 
 namespace lic
 {
 
 struct BaseMsgHandler
 {
-    virtual bool handle(const std::string& msg) = 0;
+    virtual bool handle(Event& event) = 0;
 };
 
 } // namespace lic

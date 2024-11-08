@@ -9,7 +9,7 @@ namespace lic
 struct InstanceRelHandler : JsonMsgHandler
 {
 private:
-    bool handle(const nlohmann::json& msg) override;
+    bool handle(Event& event, const nlohmann::json& msg) override;
 };
 
 
