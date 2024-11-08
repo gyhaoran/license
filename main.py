@@ -2,12 +2,12 @@ import requests
 import json
 
 # 定义 URL
-url = "http://192.168.174.130:8442/auth/license"
+url = "http://127.0.0.1:8442/auth/license"
 
 # 定义请求体
 payload = {
-    "CPU ID": "1F8BFBFF00090675",
-    "MAC": ["00:0c:29:93:59:dc", "02:42:22:bb:96:60"]
+    "CPU ID": "1F8BFBFF000906EA",
+    "MAC": ["00:0c:29:93:59:dc", "00:0c:29:e4:6f:6c"]
 }
 
 # 发送 POST 请求
@@ -27,11 +27,11 @@ else:
     print("Response:", response.text)
 
 
-if device_id != "":
-    url = "http://192.168.174.130:8442/inst/rel"
-    rel_msg = {
-        "deviceid": device_id
-    }
-    response = requests.post(url, json=rel_msg)
-    print(response, response.json())
+# if device_id != "":
+#     url = "http://127.0.0.1:8442/inst/rel"
+#     rel_msg = {
+#         "deviceid": device_id
+#     }
+#     response = requests.post(url, json=rel_msg)
+#     print(response, response.json())
 

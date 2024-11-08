@@ -39,7 +39,7 @@ std::map<std::string, int> parse_json_object(const nlohmann::json& j)
 
 void signal_handler(int signum) 
 {
-    save_to_file(LicenseRepo::get_instance(), "./info.dat");
+    save_to_file(LicenseRepo::get_instance().devices(), "./info.dat");
     std::exit(signum);
 }
 
@@ -66,11 +66,11 @@ void init()
         inst.add_device(key, DeviceInfo(key, value, 0));
     }
 
-    // DeviceInfos device_infos{};
-    // if (load_from_file("./info.dat", device_infos))
-    // {
-    //     inst.reset_devices(device_infos);
-    // }
+    DeviceInfos device_infos{};
+    if (load_from_file("./info.dat", device_infos))
+    {
+        inst.reset_devices(device_infos);
+    }
 
     reg_signal();
 }

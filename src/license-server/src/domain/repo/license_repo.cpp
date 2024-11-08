@@ -84,4 +84,9 @@ void LicenseRepo::clear()
     devices_.clear();
 }
 
+DeviceInfos& LicenseRepo::devices()
+{
+    return devices_;
+}
+
 } // namespace lic

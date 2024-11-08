@@ -27,11 +27,7 @@ DEF_SINGLETON(LicenseRepo)
 
     void clear();
 
-    template <class Archive>
-    void serialize(Archive& ar, const unsigned int version) 
-    {
-        ar & boost::serialization::make_nvp("devices", devices_);
-    }
+    DeviceInfos& devices();
 
 private:
     LicensePeriod period_{};

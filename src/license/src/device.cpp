@@ -98,7 +98,6 @@ std::string gen_device_hash(const std::string& cpu_id, const std::string& mac_ad
         {"CPU ID", cpu_id},    
         {"MAC Address", mac_addr}  
     };
-    std::cout << device_info << '\n';
     return computeSha256(device_info.dump());
 }
 

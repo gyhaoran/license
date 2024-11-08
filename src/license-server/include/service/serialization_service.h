@@ -16,7 +16,7 @@ private:
     std::string save_file_;
 };
 
-void save_to_file(const LicenseRepo& obj, const std::string& filename);
+void save_to_file(const DeviceInfos& devices, const std::string& filename);
 bool load_from_file(const std::string& filename, DeviceInfos& devices);
 
 } // namespace lic
