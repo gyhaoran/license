@@ -2,7 +2,7 @@
 #include "domain/handler/auth_req_handler.h"
 #include "domain/handler/instance_rel_handler.h"
 #include "domain/event/event.h"
-
+#include "infra/log/log.h"
 #include <hv/HttpServer.h>
 #include <hv/HttpResponseWriter.h>
 #include <hv/hasync.h>
@@ -33,7 +33,7 @@ std::string handle_http_msg(EventId id, const std::string& msg)
 
         return event.get_rsp_msg();
     }
-
+    LOG_ERROR("unexpected eventid: %u", id);
     return R"({"status": "Failure", "message": "unkonwn"})";
 }
 
@@ -46,11 +46,13 @@ void handle_authen_req(const std::string& msg, const HttpResponseWriterPtr& writ
 {
     try 
     {
+        LOG_INFO("Rcv EV_AUTHRIZATION_REQ msg:\n%s", msg.c_str());
         auto rsp = handle_http_msg(EV_AUTHRIZATION_REQ, msg);
         writer->End(rsp);
     } 
     catch (const std::exception& e) 
     {
+        LOG_ERROR("Handle EV_AUTHRIZATION_REQ error: %s", e.what());
         writer->End(R"({"status": "Failure", "message": "unkonwn"})");
     }
 }
@@ -59,11 +61,13 @@ void handle_inst_release(const std::string& msg, const HttpResponseWriterPtr& wr
 {
     try 
     {
+        LOG_INFO("Rcv EV_INSTANCE_REL msg:\n%s", msg.c_str());
         auto rsp = handle_http_msg(EV_INSTANCE_REL, msg);
         writer->End(rsp);
     } 
     catch (const std::exception& e) 
     {
+        LOG_ERROR("Handle EV_INSTANCE_REL error: %s", e.what());
         writer->End(R"({"status": "Failure", "message": "unkonwn"})");
     }
 }

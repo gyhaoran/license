@@ -1,4 +1,5 @@
 #include "domain/repo/license_repo.h"
+#include "infra/log/log.h"
 #include <iostream>
 
 namespace lic
@@ -33,9 +34,15 @@ void LicenseRepo::remove_device(const DeviceId& id)
     devices_.erase(id);
 }
 
-void LicenseRepo::reset_devices(const DeviceInfos& devices)
+void LicenseRepo::recover_devices(const DeviceInfos& devices)
 {
-    devices_ = devices;
+    for (const auto& [id, value] : devices) 
+    {
+        if (auto it = devices_.find(id); it != devices_.end()) 
+        {
+            it->second = value;
+        }
+    }
 }
 
 void LicenseRepo::release_inst(const DeviceId& device_id)

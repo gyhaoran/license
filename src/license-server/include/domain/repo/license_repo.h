@@ -17,7 +17,7 @@ DEF_SINGLETON(LicenseRepo)
 {
     void add_device(const DeviceId&, const DeviceInfo&);
     void remove_device(const DeviceId&);
-    void reset_devices(const DeviceInfos&);
+    void recover_devices(const DeviceInfos&);
 
     void release_inst(const DeviceId&);
 

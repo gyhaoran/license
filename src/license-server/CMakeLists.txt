@@ -15,7 +15,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${LICENSE_PATH}/include
 )
 
-target_link_libraries(${PROJECT_NAME} license hv_static OpenSSL::SSL OpenSSL::Crypto Boost::serialization)
+target_link_libraries(${PROJECT_NAME} license pthread hv_static OpenSSL::SSL OpenSSL::Crypto Boost::serialization)
 
 # Install rules
 install(TARGETS ${PROJECT_NAME}

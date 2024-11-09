@@ -1,6 +1,7 @@
 #include "app/init.h"
 #include "domain/repo/license_repo.h"
 #include "domain/license_period.h"
+#include "infra/log/log.h"
 #include "service/serialization_service.h"
 #include "license_parser.h"
 #include "hash.h"
@@ -25,13 +26,13 @@ std::map<std::string, int> parse_json_object(const nlohmann::json& j)
             }
             else 
             {
-                std::cerr << "Value for key '" << key << "' is not an integer.\n";
+                LOG_ERROR("Value for key: %s is not an integer.", key.c_str());
             }
         }
     }
     else 
     {
-        std::cerr << "The provided JSON is not an object.\n";
+        LOG_ERROR("The provided JSON is not an object");
     }
 
     return result;
@@ -69,7 +70,7 @@ void init()
     DeviceInfos device_infos{};
     if (load_from_file("./info.dat", device_infos))
     {
-        inst.reset_devices(device_infos);
+        inst.recover_devices(device_infos);
     }
 
     reg_signal();

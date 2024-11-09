@@ -1,5 +1,6 @@
 #include "domain/handler/auth_req_handler.h"
 #include "domain/repo/license_repo.h"
+#include "infra/log/log.h"
 #include "device.h"
 #include "json.hpp"
 #include <iostream>
@@ -62,9 +63,13 @@ bool AuthReqHandler::handle(Event& event, const nlohmann::json& msg)
         }
     }
 
-    rsp["status"] = "Failure";
-    rsp["message"] = "Device not authorized";
-    event.update_rsp_msg(rsp.dump());
+    if (req.mac_addresses.empty())
+    {
+        LOG_INFO("Device not authorized");
+        rsp["status"] = "Failure";
+        rsp["message"] = "Device not authorized";
+        event.update_rsp_msg(rsp.dump());
+    }
 
     return false;
 }

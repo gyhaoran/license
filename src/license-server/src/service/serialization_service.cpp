@@ -1,4 +1,5 @@
 #include "service/serialization_service.h"
+#include "infra/log/log.h"
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <thread>
@@ -31,24 +32,39 @@ void SerializationService::run()
 
 void save_to_file(const DeviceInfos& devices, const std::string& filename) 
 {
-    std::lock_guard<std::mutex> lock(obj_mutex);
-    std::ofstream ofs(filename, std::ios::binary);    
-    if (!ofs) { return; }
+    try
+    {
+        std::lock_guard<std::mutex> lock(obj_mutex);
+        std::ofstream ofs(filename, std::ios::binary);
+        if (!ofs) { return; }
 
-    boost::archive::binary_oarchive oa(ofs);
-    oa << devices;
+        boost::archive::binary_oarchive oa(ofs);
+        oa << devices;
+    }
+    catch(const std::exception& e)
+    {
+        LOG_ERROR("save_to_file error: %s", e.what());
+    }
 }
 
 bool load_from_file(const std::string& filename, DeviceInfos& devices) 
 {
-    std::map<DeviceId, DeviceInfo> d;
-    std::ifstream ifs(filename, std::ios::binary);
-    if (!ifs) 
+    try
     {
+        std::map<DeviceId, DeviceInfo> d;
+        std::ifstream ifs(filename, std::ios::binary);
+        if (!ifs) 
+        {
+            return false;
+        }
+        boost::archive::binary_iarchive ia(ifs);
+        ia >> d;
+    }
+    catch(const std::exception& e)
+    {
+        LOG_ERROR("load_from_file error: %s", e.what());
         return false;
     }
-    boost::archive::binary_iarchive ia(ifs);
-    ia >> d;
 
     return true;
 }
