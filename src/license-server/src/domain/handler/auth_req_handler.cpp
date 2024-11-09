@@ -1,7 +1,7 @@
 #include "domain/handler/auth_req_handler.h"
 #include "domain/repo/license_repo.h"
+#include "domain/msg/auth_req_msg.h"
 #include "infra/log/log.h"
-#include "device.h"
 #include "json.hpp"
 #include <iostream>
 
@@ -12,12 +12,6 @@ namespace lic
 
 namespace
 {
-
-struct AuthReqMsg 
-{
-    std::string cpu_id{""};
-    std::vector<std::string> mac_addresses;
-};
 
 AuthReqMsg parse_auth_req(const json& msg) 
 {
@@ -45,32 +39,20 @@ AuthReqMsg parse_auth_req(const json& msg)
     return info;
 }
 
-}
+} // namespace
 
 bool AuthReqHandler::handle(Event& event, const nlohmann::json& msg)
 {
     auto req = parse_auth_req(msg);
     auto& cpu_id = req.cpu_id;
-    
+
     json rsp;
-    for (const auto& mac : req.mac_addresses)
+    if (LicenseRepo::get_instance().validate(req, rsp))
     {
-        auto device_id = gen_device_hash(cpu_id, mac);
-        if (LicenseRepo::get_instance().validate(device_id, rsp))
-        {
-            event.update_rsp_msg(rsp.dump());
-            return true;
-        }
-    }
-
-    if (req.mac_addresses.empty())
-    {
-        LOG_INFO("Device not authorized");
-        rsp["status"] = "Failure";
-        rsp["message"] = "Device not authorized";
         event.update_rsp_msg(rsp.dump());
+        return true;
     }
-
+    event.update_rsp_msg(rsp.dump());
     return false;
 }
 

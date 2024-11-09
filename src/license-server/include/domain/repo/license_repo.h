@@ -10,6 +10,7 @@
 namespace lic
 {
 
+struct AuthReqMsg;
 struct LicensePeriod;
 using DeviceInfos = std::map<DeviceId, DeviceInfo>;
 
@@ -23,11 +24,15 @@ DEF_SINGLETON(LicenseRepo)
 
     void set_license_period(const LicensePeriod&);
 
-    bool validate(const DeviceId&, ::nlohmann::json&);
+    bool validate(const AuthReqMsg&, ::nlohmann::json&);
 
     void clear();
+    void dump();
 
     DeviceInfos& devices();
+
+private:
+    bool check(const DeviceId&, ::nlohmann::json&);
 
 private:
     LicensePeriod period_{};

@@ -21,7 +21,8 @@ if response.status_code == 200:
     print(response)
     rsp = response.json()
     print("Response:",rsp)
-    device_id = rsp["deviceid"]
+    if rsp:
+        device_id = rsp.get("deviceid", "")
 else:
     print(f"Request failed with status code {response.status_code}")
     print("Response:", response.text)

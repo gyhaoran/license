@@ -1,5 +1,7 @@
 #include "domain/repo/license_repo.h"
+#include "domain/msg/auth_req_msg.h"
 #include "infra/log/log.h"
+#include "device.h"
 #include <iostream>
 
 namespace lic
@@ -59,18 +61,32 @@ void LicenseRepo::release_inst(const DeviceId& device_id)
     period_ = period;
  }
 
-bool LicenseRepo::validate(const DeviceId& device_id, ::nlohmann::json& rsp)
+bool LicenseRepo::validate(const AuthReqMsg& req, ::nlohmann::json& rsp)
 {
-    auto iter = devices_.find(device_id);
-    if (iter == devices_.end())
+    auto& cpu_id = req.cpu_id;
+    for (const auto& mac : req.mac_addresses)
     {
-        build_auth_rsp_msg(rsp, "Device not authorized");
-        return false;
-    }
+        auto device_id = gen_device_hash(cpu_id, mac);
 
-    DeviceInfo& device = iter->second;
+        auto iter = devices_.find(device_id);
+        if (iter == devices_.end())
+        {
+            continue;
+        }
+        else
+        {
+            return check(device_id, rsp);
+        }
+    }
+    build_auth_rsp_msg(rsp, "Device not authorized");
+}
+
+bool LicenseRepo::check(const DeviceId& device_id, ::nlohmann::json& rsp)
+{
+    auto& device = devices_[device_id];
     if (device.current_instance >= device.max_instance)
     {
+        LOG_ERROR("Max instance limit reached");
         build_auth_rsp_msg(rsp, "Max instance limit reached");
         return false;
     }
@@ -78,17 +94,27 @@ bool LicenseRepo::validate(const DeviceId& device_id, ::nlohmann::json& rsp)
     ++device.current_instance;
     if (!period_.is_valid())
     {
+        LOG_ERROR("License has expired");
         build_auth_rsp_msg(rsp, "License has expired");
         return false;
     }
 
-    build_auth_rsp_msg(rsp, "License has expired", device_id, true);
+    build_auth_rsp_msg(rsp, "License activate success", device_id, true);
     return true;
 }
 
 void LicenseRepo::clear()
 {
     devices_.clear();
+}
+
+void LicenseRepo::dump()
+{
+    std::cout << "LicenseRepo info:\n";
+    for (const auto& [id, value] : devices_) 
+    {
+        std::cout << "Device Id: " << id << "\nDeviceInfo: " << value.to_string() << '\n';
+    }
 }
 
 DeviceInfos& LicenseRepo::devices()

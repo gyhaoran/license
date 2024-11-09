@@ -6,6 +6,7 @@
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/nvp.hpp>
 #include <string>
+#include <sstream>
 
 namespace lic
 {
@@ -17,6 +18,14 @@ struct DeviceInfo
     std::string hash{""};
     int max_instance{1};
     int current_instance{0};
+
+    std::string to_string() const
+    {
+        std::ostringstream oss;
+        oss << "id: " << hash << ", current_instance: " << current_instance 
+            << ", max_instance: " << max_instance;
+        return oss.str();
+    }
 
     template <class Archive>
     void serialize(Archive& ar, const unsigned int version)

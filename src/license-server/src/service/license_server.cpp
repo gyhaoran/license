@@ -39,6 +39,7 @@ std::string handle_http_msg(EventId id, const std::string& msg)
 
 void send_http_rsp(const HttpResponseWriterPtr& writer, const std::string& rsp)
 {
+    LOG_INFO("send_http_rsp msg: \n%s", rsp.c_str());
     writer->End(rsp);
 }
 
@@ -48,7 +49,7 @@ void handle_authen_req(const std::string& msg, const HttpResponseWriterPtr& writ
     {
         LOG_INFO("Rcv EV_AUTHRIZATION_REQ msg:\n%s", msg.c_str());
         auto rsp = handle_http_msg(EV_AUTHRIZATION_REQ, msg);
-        writer->End(rsp);
+        send_http_rsp(writer, rsp);
     } 
     catch (const std::exception& e) 
     {
@@ -63,7 +64,7 @@ void handle_inst_release(const std::string& msg, const HttpResponseWriterPtr& wr
     {
         LOG_INFO("Rcv EV_INSTANCE_REL msg:\n%s", msg.c_str());
         auto rsp = handle_http_msg(EV_INSTANCE_REL, msg);
-        writer->End(rsp);
+        send_http_rsp(writer, rsp);
     } 
     catch (const std::exception& e) 
     {
