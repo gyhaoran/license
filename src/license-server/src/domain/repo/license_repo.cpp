@@ -113,7 +113,7 @@ void LicenseRepo::dump()
     std::cout << "LicenseRepo info:\n";
     for (const auto& [id, value] : devices_) 
     {
-        std::cout << "Device Id: " << id << "\nDeviceInfo: " << value.to_string() << '\n';
+        std::cout << "DeviceInfo: " << value.to_string() << '\n';
     }
 }
 

@@ -51,14 +51,13 @@ bool load_from_file(const std::string& filename, DeviceInfos& devices)
 {
     try
     {
-        std::map<DeviceId, DeviceInfo> d;
         std::ifstream ifs(filename, std::ios::binary);
         if (!ifs) 
         {
             return false;
         }
         boost::archive::binary_iarchive ia(ifs);
-        ia >> d;
+        ia >> devices;
     }
     catch(const std::exception& e)
     {
