@@ -75,13 +75,13 @@ bool LicenseRepo::validate(const AuthReqMsg& req, ::nlohmann::json& rsp)
         }
         else
         {
-            return check(device_id, rsp);
+            return check(device_id, req.instance_id, rsp);
         }
     }
     build_auth_rsp_msg(rsp, "Device not authorized");
 }
 
-bool LicenseRepo::check(const DeviceId& device_id, ::nlohmann::json& rsp)
+bool LicenseRepo::check(const DeviceId& device_id, const InstanceId& instance_id, ::nlohmann::json& rsp)
 {
     auto& device = devices_[device_id];
     if (device.current_instance >= device.max_instance)
@@ -91,7 +91,6 @@ bool LicenseRepo::check(const DeviceId& device_id, ::nlohmann::json& rsp)
         return false;
     }
     
-    ++device.current_instance;
     if (!period_.is_valid())
     {
         LOG_ERROR("License has expired");
@@ -99,8 +98,27 @@ bool LicenseRepo::check(const DeviceId& device_id, ::nlohmann::json& rsp)
         return false;
     }
 
+    InstanceInfo info{instance_id, std::chrono::steady_clock::now()};
+    device.instances[instance_id] = info;
+    ++device.current_instance;
+
     build_auth_rsp_msg(rsp, "License activate success", device_id, true);
     return true;
+}
+
+bool LicenseRepo::increase(const DeviceId& device_id, const InstanceId& instance_id)
+{
+    auto& device = devices_[device_id];
+    InstanceInfo info{instance_id, std::chrono::steady_clock::now()};
+    device.instances[instance_id] = info;
+    ++device.current_instance;
+}
+
+bool LicenseRepo::decrease(const DeviceId& device_id, const InstanceId& instance_id)
+{
+    auto& device = devices_[device_id];
+    device.instances.erase(instance_id);
+    --device.current_instance;
 }
 
 void LicenseRepo::clear()

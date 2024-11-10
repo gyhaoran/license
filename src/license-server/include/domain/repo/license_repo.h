@@ -32,7 +32,9 @@ DEF_SINGLETON(LicenseRepo)
     DeviceInfos& devices();
 
 private:
-    bool check(const DeviceId&, ::nlohmann::json&);
+    bool check(const DeviceId&, const InstanceId&, ::nlohmann::json&);
+    bool increase(const DeviceId&, const InstanceId&);
+    bool decrease(const DeviceId&, const InstanceId&);
 
 private:
     LicensePeriod period_{};

@@ -19,7 +19,17 @@ AuthReqMsg parse_auth_req(const json& msg)
 
     if (msg.is_object()) 
     {
-        if (msg.contains("CPU ID") && msg["CPU ID"].is_string()) 
+        if (!msg.contains("UUID") || !msg.contains("CPU ID"), !msg.contains("MAC"))
+        {
+            return info;
+        }
+        
+        if (msg["UUID"].is_string())
+        {
+            info.instance_id = msg["UUID"].get<std::string>();
+        }
+
+        if (msg["CPU ID"].is_string()) 
         {
             info.cpu_id = msg["CPU ID"].get<std::string>();
         }
@@ -44,8 +54,6 @@ AuthReqMsg parse_auth_req(const json& msg)
 bool AuthReqHandler::handle(Event& event, const nlohmann::json& msg)
 {
     auto req = parse_auth_req(msg);
-    auto& cpu_id = req.cpu_id;
-
     json rsp;
     if (LicenseRepo::get_instance().validate(req, rsp))
     {

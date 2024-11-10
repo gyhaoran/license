@@ -9,6 +9,7 @@ namespace lic
     
 struct AuthReqMsg 
 {
+    std::string instance_id{""};
     std::string cpu_id{""};
     std::vector<std::string> mac_addresses{};
 };
