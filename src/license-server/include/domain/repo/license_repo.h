@@ -31,6 +31,8 @@ DEF_SINGLETON(LicenseRepo)
     void clear();
     void dump();
 
+    void remove_inactive_inst(int timeout);
+
     DeviceInfos& devices();
 
 private:
@@ -39,6 +41,7 @@ private:
 private:
     LicensePeriod period_{};
     DeviceInfos devices_{};
+    std::mutex mutex_;
 };
     
 } // namespace lic

@@ -100,13 +100,13 @@ LicenseServer::~LicenseServer()
 
 void LicenseServer::run()
 {
-    hv::HttpServer server;
+    static hv::HttpServer server;
     server.service = service_;
     server.port = port_;
 
     server.run();
-
     ::hv::async::cleanup();
+    // std::atexit(::hv::async::cleanup);
 }
 
 } // namespace lic

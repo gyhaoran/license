@@ -99,6 +99,7 @@ bool LicenseRepo::check(const DeviceId& device_id, const InstanceId& instance_id
 
 void LicenseRepo::add_instance(const DeviceId& device_id, const InstanceId& instance_id)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     auto& device = devices_[device_id];
     if (device.instances.contains(instance_id))
     {
@@ -122,6 +123,7 @@ void LicenseRepo::release_instance(const DeviceId& device_id, const InstanceId& 
     auto& device = devices_[device_id];
     if (device.instances.contains(instance_id))
     {
+        std::lock_guard<std::mutex> lock(mutex_);
         device.instances.erase(instance_id);
         --device.current_instance;
     }
@@ -138,7 +140,34 @@ void LicenseRepo::update_instance(const DeviceId& device_id, const InstanceId& i
     auto& device = devices_[device_id];
     if (device.instances.contains(instance_id))
     {
+        std::lock_guard<std::mutex> lock(mutex_);
         device.instances[instance_id].last_heartbeat = std::chrono::steady_clock::now();
+    }
+}
+
+void LicenseRepo::remove_inactive_inst(int timeout)
+{
+    auto now = std::chrono::steady_clock::now();
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (auto& [device_id, device] : devices_) 
+    {
+        for (auto it = device.instances.begin(); it != device.instances.end(); ) 
+        {
+            auto last_heartbeat = it->second.last_heartbeat;
+            auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - last_heartbeat).count();
+
+            LOG_INFO("inst_id: %s, duration %lld, timeout: %d", it->first.c_str(), duration, timeout);
+
+            if (duration > timeout) 
+            {
+                it = device.instances.erase(it);
+                --device.current_instance;
+            } 
+            else 
+            {
+                ++it;
+            }
+        }
     }
 }
 

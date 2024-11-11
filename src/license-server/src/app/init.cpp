@@ -40,6 +40,7 @@ std::map<std::string, int> parse_json_object(const nlohmann::json& j)
 
 void signal_handler(int signum) 
 {
+    LOG_ERROR("Rcv signal: %d", signum);
     save_to_file(LicenseRepo::get_instance().devices(), "./info.dat");
     std::exit(signum);
 }
@@ -47,6 +48,7 @@ void signal_handler(int signum)
 void reg_signal()
 {
     signal(SIGINT, signal_handler);
+    signal(SIGSEGV, signal_handler);
     signal(SIGTERM, signal_handler);
 }
 
@@ -71,7 +73,6 @@ void init()
     if (load_from_file("./info.dat", device_infos))
     {
         inst.recover_devices(device_infos);
-        inst.dump(); // TODO: will removed future
     }
 
     reg_signal();

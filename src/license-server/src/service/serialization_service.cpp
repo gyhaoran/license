@@ -26,7 +26,7 @@ SerializationService::SerializationService(const std::string& file) : save_file_
 
 void SerializationService::run()
 {
-    std::thread save_thread(periodic_save, save_file_, std::chrono::seconds(60));
+    std::thread save_thread(periodic_save, save_file_, std::chrono::seconds(180));
     save_thread.detach();
 }
 
@@ -34,7 +34,7 @@ void save_to_file(const DeviceInfos& devices, const std::string& filename)
 {
     try
     {
-        std::lock_guard<std::mutex> lock(obj_mutex);
+        // std::lock_guard<std::mutex> lock(obj_mutex);
         std::ofstream ofs(filename, std::ios::binary);
         if (!ofs) { return; }
 

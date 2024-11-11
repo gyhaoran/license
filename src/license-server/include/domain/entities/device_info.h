@@ -38,6 +38,7 @@ struct DeviceInfo
         ar & boost::serialization::make_nvp("device_id", device_id);
         ar & boost::serialization::make_nvp("max_instance", max_instance);
         ar & boost::serialization::make_nvp("current_instance", current_instance);
+        ar & boost::serialization::make_nvp("instances", instances);
     }
 };
 
