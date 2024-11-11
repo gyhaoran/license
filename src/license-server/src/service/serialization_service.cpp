@@ -26,7 +26,7 @@ SerializationService::SerializationService(const std::string& file) : save_file_
 
 void SerializationService::run()
 {
-    std::thread save_thread(periodic_save, save_file_, std::chrono::seconds(180));
+    std::thread save_thread(periodic_save, save_file_, std::chrono::seconds(300));
     save_thread.detach();
 }
 
@@ -34,7 +34,7 @@ void save_to_file(const DeviceInfos& devices, const std::string& filename)
 {
     try
     {
-        // std::lock_guard<std::mutex> lock(obj_mutex);
+        std::lock_guard<std::mutex> lock(obj_mutex);
         std::ofstream ofs(filename, std::ios::binary);
         if (!ofs) { return; }
 
@@ -51,6 +51,7 @@ bool load_from_file(const std::string& filename, DeviceInfos& devices)
 {
     try
     {
+        std::lock_guard<std::mutex> lock(obj_mutex);
         std::ifstream ifs(filename, std::ios::binary);
         if (!ifs) 
         {
@@ -61,7 +62,12 @@ bool load_from_file(const std::string& filename, DeviceInfos& devices)
     }
     catch(const std::exception& e)
     {
-        LOG_ERROR("load_from_file error: %s", e.what());
+        LOG_ERROR("load_from_file exception: %s", e.what());
+        return false;
+    }
+    catch(...)
+    {
+        LOG_ERROR("load_from_file unexpect exception");
         return false;
     }
 

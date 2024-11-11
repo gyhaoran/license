@@ -20,10 +20,6 @@ void main_entry(int argc, char** argv)
 
     LicenseServer server;
     server.run();
-    
-    // while (true)
-    // {
-    // }
 }
 
 } // namespace lic

@@ -77,7 +77,7 @@ bool LicenseRepo::validate(const AuthReqMsg& req, ::nlohmann::json& rsp)
 bool LicenseRepo::check(const DeviceId& device_id, const InstanceId& instance_id, ::nlohmann::json& rsp)
 {
     auto& device = devices_[device_id];
-    if (device.current_instance >= device.max_instance)
+    if (device.instances.size() >= device.max_instance)
     {
         LOG_ERROR("Max instance limit reached");
         build_auth_rsp_msg(rsp, "Max instance limit reached");
@@ -105,10 +105,9 @@ void LicenseRepo::add_instance(const DeviceId& device_id, const InstanceId& inst
     {
         device.instances[instance_id].last_heartbeat = std::chrono::steady_clock::now();
     }
-    else 
+    else
     {
         device.instances[instance_id] = InstanceInfo{instance_id, std::chrono::steady_clock::now()};
-        ++device.current_instance;
     }
 }
 
@@ -125,7 +124,6 @@ void LicenseRepo::release_instance(const DeviceId& device_id, const InstanceId& 
     {
         std::lock_guard<std::mutex> lock(mutex_);
         device.instances.erase(instance_id);
-        --device.current_instance;
     }
 }
 
@@ -137,12 +135,7 @@ void LicenseRepo::update_instance(const DeviceId& device_id, const InstanceId& i
         return;
     }
     
-    auto& device = devices_[device_id];
-    if (device.instances.contains(instance_id))
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        device.instances[instance_id].last_heartbeat = std::chrono::steady_clock::now();
-    }
+    add_instance(device_id, instance_id);
 }
 
 void LicenseRepo::remove_inactive_inst(int timeout)
@@ -161,7 +154,6 @@ void LicenseRepo::remove_inactive_inst(int timeout)
             if (duration > timeout) 
             {
                 it = device.instances.erase(it);
-                --device.current_instance;
             } 
             else 
             {

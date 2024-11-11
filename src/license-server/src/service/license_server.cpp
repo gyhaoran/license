@@ -41,6 +41,13 @@ void handle_authen_req(const std::string& msg, const HttpResponseWriterPtr& writ
     catch (const std::exception& e) 
     {
         LOG_ERROR("Handle EV_AUTHRIZATION_REQ error: %s", e.what());
+        writer->WriteStatus(HTTP_STATUS_BAD_REQUEST);
+        writer->End(R"({"status": "Failure", "message": "unkonwn"})");
+    }
+    catch (...)
+    {
+        LOG_ERROR("Handle EV_AUTHRIZATION_REQ error:");
+        writer->WriteStatus(HTTP_STATUS_BAD_REQUEST);
         writer->End(R"({"status": "Failure", "message": "unkonwn"})");
     }
 }

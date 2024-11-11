@@ -64,9 +64,9 @@ void init()
     inst.set_license_period(LicensePeriod(issue_date, expire_date));
 
     auto all_devices = parse_json_object(info["devices"]);
-    for (auto& [key, value] : all_devices)
+    for (auto& [device_id, max_inst] : all_devices)
     {
-        inst.add_device(key, DeviceInfo(key, value, 0));
+        inst.add_device(device_id, DeviceInfo(device_id, max_inst));
     }
 
     DeviceInfos device_infos{};

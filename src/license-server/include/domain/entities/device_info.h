@@ -13,13 +13,12 @@ struct DeviceInfo
 {
     DeviceId device_id{""};
     int max_instance{1};
-    int current_instance{0}; // equal instances.size();
     InstanceInfos instances{};
 
     std::string to_string() const
     {
         std::ostringstream oss;
-        oss << "id: " << device_id << ", current_instance: " << current_instance 
+        oss << "id: " << device_id << ", current_instance: " << instances.size() 
             << ", max_instance: " << max_instance << "\n";
 
         oss << "InstanceInfos: [";
@@ -37,7 +36,6 @@ struct DeviceInfo
     {
         ar & boost::serialization::make_nvp("device_id", device_id);
         ar & boost::serialization::make_nvp("max_instance", max_instance);
-        ar & boost::serialization::make_nvp("current_instance", current_instance);
         ar & boost::serialization::make_nvp("instances", instances);
     }
 };
