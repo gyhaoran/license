@@ -15,38 +15,38 @@ namespace
 
 AuthReqMsg parse_auth_req(const json& msg) 
 {
-    AuthReqMsg info;
+    AuthReqMsg req;
 
     if (msg.is_object()) 
     {
-        if (!msg.contains("UUID") || !msg.contains("CPU ID"), !msg.contains("MAC"))
+        if (!msg.contains("uuid") || !msg.contains("cpuid") || !msg.contains("mac"))
         {
-            return info;
+            return req;
         }
         
-        if (msg["UUID"].is_string())
+        if (msg["uuid"].is_string())
         {
-            info.instance_id = msg["UUID"].get<std::string>();
+            req.instance_id = msg["uuid"].get<std::string>();
         }
 
-        if (msg["CPU ID"].is_string()) 
+        if (msg["cpuid"].is_string()) 
         {
-            info.cpu_id = msg["CPU ID"].get<std::string>();
+            req.cpu_id = msg["cpuid"].get<std::string>();
         }
 
-        if (msg.contains("MAC") && msg["MAC"].is_array()) 
+        if (msg.contains("mac") && msg["mac"].is_array()) 
         {
-            for (const auto& mac : msg["MAC"]) 
+            for (const auto& mac : msg["mac"]) 
             {
                 if (mac.is_string())
                 {
-                    info.mac_addresses.push_back(mac.get<std::string>());
+                    req.mac_addresses.push_back(mac.get<std::string>());
                 }
             }
         }
     }
 
-    return info;
+    return req;
 }
 
 } // namespace

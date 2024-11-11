@@ -11,6 +11,8 @@ struct Event
 {
     Event(EventId id, const std::string& msg);
 
+    EventId event_id() const;
+
     const std::string& get_msg() const;
     std::string get_rsp_msg() const;
     

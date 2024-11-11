@@ -1,13 +1,7 @@
 #ifndef F0C959E2_3C62_4B5F_A7A3_9BD80FA17F66
 #define F0C959E2_3C62_4B5F_A7A3_9BD80FA17F66
 
-#include "domain/instance_info.h"
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/string.hpp>
-#include <boost/serialization/serialization.hpp>
-#include <boost/serialization/nvp.hpp>
-#include <string>
-#include <sstream>
+#include "domain/entities/instance_info.h"
 #include <map>
 
 namespace lic
@@ -26,7 +20,15 @@ struct DeviceInfo
     {
         std::ostringstream oss;
         oss << "id: " << device_id << ", current_instance: " << current_instance 
-            << ", max_instance: " << max_instance;
+            << ", max_instance: " << max_instance << "\n";
+
+        oss << "InstanceInfos: [";
+        for (auto& [id, inst] : instances)
+        {
+            oss << inst.to_string() << ", ";
+        }
+        oss << "]";
+
         return oss.str();
     }
 

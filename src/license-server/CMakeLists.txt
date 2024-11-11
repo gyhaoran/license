@@ -21,7 +21,3 @@ target_link_libraries(${PROJECT_NAME} license pthread hv_static OpenSSL::SSL Ope
 install(TARGETS ${PROJECT_NAME}
     DESTINATION bin
 )
-
-install(FILES include/verify.h
-    DESTINATION include
-)

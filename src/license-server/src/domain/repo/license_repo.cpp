@@ -47,15 +47,6 @@ void LicenseRepo::recover_devices(const DeviceInfos& devices)
     }
 }
 
-void LicenseRepo::release_inst(const DeviceId& device_id)
-{
-    auto iter = devices_.find(device_id);
-    if (iter != devices_.end())
-    {
-        --iter->second.current_instance;
-    }    
-}
-
  void LicenseRepo::set_license_period(const LicensePeriod& period)
  {
     period_ = period;
@@ -78,7 +69,9 @@ bool LicenseRepo::validate(const AuthReqMsg& req, ::nlohmann::json& rsp)
             return check(device_id, req.instance_id, rsp);
         }
     }
+    LOG_WARN("Device not authorized");
     build_auth_rsp_msg(rsp, "Device not authorized");
+    return false;
 }
 
 bool LicenseRepo::check(const DeviceId& device_id, const InstanceId& instance_id, ::nlohmann::json& rsp)
@@ -98,27 +91,55 @@ bool LicenseRepo::check(const DeviceId& device_id, const InstanceId& instance_id
         return false;
     }
 
-    InstanceInfo info{instance_id, std::chrono::steady_clock::now()};
-    device.instances[instance_id] = info;
-    ++device.current_instance;
+    add_instance(device_id, instance_id);
 
     build_auth_rsp_msg(rsp, "License activate success", device_id, true);
     return true;
 }
 
-bool LicenseRepo::increase(const DeviceId& device_id, const InstanceId& instance_id)
+void LicenseRepo::add_instance(const DeviceId& device_id, const InstanceId& instance_id)
 {
     auto& device = devices_[device_id];
-    InstanceInfo info{instance_id, std::chrono::steady_clock::now()};
-    device.instances[instance_id] = info;
-    ++device.current_instance;
+    if (device.instances.contains(instance_id))
+    {
+        device.instances[instance_id].last_heartbeat = std::chrono::steady_clock::now();
+    }
+    else 
+    {
+        device.instances[instance_id] = InstanceInfo{instance_id, std::chrono::steady_clock::now()};
+        ++device.current_instance;
+    }
 }
 
-bool LicenseRepo::decrease(const DeviceId& device_id, const InstanceId& instance_id)
+void LicenseRepo::release_instance(const DeviceId& device_id, const InstanceId& instance_id)
 {
+    if (!devices_.contains(device_id))
+    {
+        LOG_WARN("rel req, rcv invalid device_id: %s", device_id.c_str());
+        return;
+    }
+
     auto& device = devices_[device_id];
-    device.instances.erase(instance_id);
-    --device.current_instance;
+    if (device.instances.contains(instance_id))
+    {
+        device.instances.erase(instance_id);
+        --device.current_instance;
+    }
+}
+
+void LicenseRepo::update_instance(const DeviceId& device_id, const InstanceId& instance_id)
+{
+    if (!devices_.contains(device_id))
+    {
+        LOG_WARN("rcv invalid device_id: %s", device_id.c_str());
+        return;
+    }
+    
+    auto& device = devices_[device_id];
+    if (device.instances.contains(instance_id))
+    {
+        device.instances[instance_id].last_heartbeat = std::chrono::steady_clock::now();
+    }
 }
 
 void LicenseRepo::clear()

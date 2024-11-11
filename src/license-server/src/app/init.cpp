@@ -1,6 +1,6 @@
 #include "app/init.h"
 #include "domain/repo/license_repo.h"
-#include "domain/license_period.h"
+#include "domain/entities/license_period.h"
 #include "infra/log/log.h"
 #include "service/serialization_service.h"
 #include "license_parser.h"
@@ -71,6 +71,7 @@ void init()
     if (load_from_file("./info.dat", device_infos))
     {
         inst.recover_devices(device_infos);
+        inst.dump(); // TODO: will removed future
     }
 
     reg_signal();
