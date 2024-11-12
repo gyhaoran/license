@@ -21,6 +21,6 @@ install(TARGETS ${PROJECT_NAME}
     DESTINATION lib
 )
 
-install(FILES include/verify.h include/device.h
-    DESTINATION include
-)
+# install(FILES include/verify.h include/device.h
+#     DESTINATION include
+# )

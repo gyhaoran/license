@@ -1,4 +1,5 @@
 #include "app/init.h"
+#include "app/config/env_parser.h"
 #include "domain/repo/license_repo.h"
 #include "domain/entities/license_period.h"
 #include "infra/log/log.h"
@@ -41,7 +42,7 @@ std::map<std::string, int> parse_json_object(const nlohmann::json& j)
 void signal_handler(int signum) 
 {
     LOG_ERROR("Rcv signal: %d", signum);
-    save_to_file(LicenseRepo::get_instance().devices(), "./info.dat");
+    save_to_file(LicenseRepo::get_instance().devices(), EnvParser::get_data_path());
     std::exit(signum);
 }
 
@@ -54,7 +55,7 @@ void reg_signal()
 
 void init()
 {
-    auto license_info = get_license_info("./license.dat");
+    auto license_info = get_license_info(EnvParser::get_license_path());
     auto info = nlohmann::json::parse(license_info);
 
     auto issue_date = info["issue_date"];
@@ -70,7 +71,7 @@ void init()
     }
 
     DeviceInfos device_infos{};
-    if (load_from_file("./info.dat", device_infos))
+    if (load_from_file(EnvParser::get_data_path(), device_infos))
     {
         inst.recover_devices(device_infos);
     }
