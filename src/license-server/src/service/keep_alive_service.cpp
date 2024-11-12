@@ -16,15 +16,9 @@ void evict_inactive_instances(int timeout_seconds, std::chrono::seconds interval
     while (true) 
     {
         try 
-        {
-            LOG_INFO("Before clear inactive inst:");
-            LicenseRepo::get_instance().dump();
-            
+        {           
             std::this_thread::sleep_for(interval);            
             LicenseRepo::get_instance().remove_inactive_inst(timeout_seconds);
-
-            LOG_INFO("After clear inactive inst:");
-            LicenseRepo::get_instance().dump();
         }
         catch (const std::exception& e) 
         {

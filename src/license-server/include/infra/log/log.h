@@ -11,35 +11,46 @@ namespace lic
 
 void infra_print(LogLevel level, const char* msg);
 
-namespace detail {
-    template<typename T>
-    auto printable_cast(T && t) -> decltype(auto) {
-        if constexpr (std::is_same_v<std::string, std::decay_t<T>>) {
-            return std::forward<T>(t).c_str();
-        } else {
-            return std::forward<T>(t);
-        }
-    }
+namespace detail 
+{
 
-    template<typename ... ARGS>
-    std::string log_format(const std::string& format, ARGS && ... args){
-        size_t size = 1 + snprintf(nullptr, 0, format.c_str(), printable_cast(args) ...);
-        char bytes[size];
-        snprintf(bytes, size, format.c_str(), printable_cast(args) ...);
-        return std::string(bytes);
+template<typename T>
+auto printable_cast(T && t) -> decltype(auto) 
+{
+    if constexpr (std::is_same_v<std::string, std::decay_t<T>>) 
+    {
+        return std::forward<T>(t).c_str();
+    } 
+    else 
+    {
+        return std::forward<T>(t);
     }
+}
 
-    template<std::size_t Len, typename ... TS>
-    void log_print(LogLevel level, const char(&file)[Len], unsigned int line, const char* fmt, TS && ...ts) {
-        auto msg = std::string("[") + to_string(level) + "]: " + log_basename(file) + ":" + std::to_string(line) + ": ";
-        if constexpr (sizeof...(TS) > 0) {
-            msg += log_format(fmt, std::forward<TS>(ts)...);
-        } else if constexpr (sizeof...(TS) == 0) {
-            msg += fmt;
-        }
-        // std::cout << color_fmt_of(level) << msg << color_fmt_of(LogLevel::NONE) << std::endl;
-        infra_print(level, msg.c_str());
+template<typename ... ARGS>
+std::string log_format(const std::string& format, ARGS && ... args)
+{
+    size_t size = 1 + snprintf(nullptr, 0, format.c_str(), printable_cast(args) ...);
+    char bytes[size];
+    snprintf(bytes, size, format.c_str(), printable_cast(args) ...);
+    return std::string(bytes);
+}
+
+template<std::size_t Len, typename ... TS>
+void log_print(LogLevel level, const char(&file)[Len], unsigned int line, const char* fmt, TS && ...ts) 
+{
+    auto msg = log_basename(file) + ":" + std::to_string(line) + ": ";
+    if constexpr (sizeof...(TS) > 0) 
+    {
+        msg += log_format(fmt, std::forward<TS>(ts)...);
+    } 
+    else if constexpr (sizeof...(TS) == 0) 
+    {
+        msg += fmt;
     }
+    infra_print(level, msg.c_str());
+}
+
 } // namespace detail
 
 } // namespace lic

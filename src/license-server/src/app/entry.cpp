@@ -4,13 +4,26 @@
 #include "service/license_server.h"
 #include "service/keep_alive_service.h"
 #include "service/serialization_service.h"
+#include "infra/log/log.h"
 
 namespace lic
 {
 
+void init_entry()
+{
+    try
+    {
+        init();
+    }
+    catch(const std::exception& e)
+    {
+        LOG_ERROR("init error: %s", e.what());
+    } 
+}
+
 void main_entry(int argc, char** argv)
 {
-    init();
+    init_entry();
     
     SerializationService service(EnvParser::get_data_path());
     service.run();

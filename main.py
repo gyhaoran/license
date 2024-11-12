@@ -22,6 +22,9 @@ instance_id = str(uuid.uuid4())
 cpu_id = get_cpu_id()
 
 
+# curl -X POST http://127.0.0.1:8442/auth/license -H "Content-Type: application/json"\
+#      -d "{\"uuid\": \"adfde574-ed2f-42d6-9d79-a09a98c67932\", \"cpuid\": \"1F8BFBFF00090675\", \"mac\": [\"00:0c:29:93:59:dc\", \"00:0c:29:e4:6f:6c\"]}"
+
 # 定义请求体
 auth_req = {
     "uuid": instance_id,
