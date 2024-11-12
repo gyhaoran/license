@@ -72,8 +72,8 @@ void handle_inst_echo(const std::string& msg, const HttpResponseWriterPtr& write
     try 
     {
         LOG_INFO("Rcv EV_INSTANCE_ECHO msg: %s", msg.c_str());
-        auto rsp = handle_http_msg(EV_INSTANCE_ECHO, msg);
         writer->End();
+        auto rsp = handle_http_msg(EV_INSTANCE_ECHO, msg);
     } 
     catch (const std::exception& e) 
     {
