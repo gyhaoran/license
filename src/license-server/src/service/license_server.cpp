@@ -1,4 +1,5 @@
 #include "service/license_server.h"
+#include "app/config/env_parser.h"
 #include "domain/event/event.h"
 #include "domain/handler/handle_event.h"
 #include "infra/log/log.h"
@@ -110,6 +111,18 @@ void LicenseServer::run()
     static hv::HttpServer server;
     server.service = service_;
     server.port = port_;
+
+    server.https_port = 8445;
+    hssl_ctx_opt_t param;
+    memset(&param, 0, sizeof(param));
+    param.crt_file = EnvParser::get_server_cert_path().c_str();
+    param.key_file = EnvParser::get_server_key_path().c_str();
+    param.endpoint = HSSL_SERVER;
+    if (server.newSslCtx(&param) != 0) 
+    {
+        LOG_ERROR("new SSL_CTX failed!");
+        return;
+    }
 
     server.run();
     ::hv::async::cleanup();

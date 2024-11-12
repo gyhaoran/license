@@ -39,7 +39,7 @@ std::string log_format(const std::string& format, ARGS && ... args)
 template<std::size_t Len, typename ... TS>
 void log_print(LogLevel level, const char(&file)[Len], unsigned int line, const char* fmt, TS && ...ts) 
 {
-    auto msg = log_basename(file) + ":" + std::to_string(line) + ": ";
+    auto msg = std::string(log_basename(file)) + ":" + std::to_string(line) + ": ";
     if constexpr (sizeof...(TS) > 0) 
     {
         msg += log_format(fmt, std::forward<TS>(ts)...);
