@@ -5,80 +5,46 @@ import signal
 import uuid
 from cpuid import cpuid
 import json
-import ssl
-from requests.packages.urllib3.poolmanager import PoolManager
-
-class Ssl1Adapter(requests.adapters.HTTPAdapter):
-    def init_poolmanager(self, connections, maxsize, block=False):
-        self.poolmanager = PoolManager(
-            num_pools=connections,
-            maxsize=maxsize,
-            block=block,
-            ssl_version=ssl.PROTOCOL_TLSv1_2
-        )
-
+import licensepy
 
 # 定义 URL
-req_url = "https://127.0.0.1:8445/auth/license"
-rel_url = "https://127.0.0.1:8445/inst/rel"
-echo_url = "https://127.0.0.1:8445/inst/echo"
+req_url = "http://127.0.0.1:8442/auth/license"
+rel_url = "http://127.0.0.1:8442/inst/rel"
+echo_url = "http://127.0.0.1:8442/inst/echo"
 
 
 def get_cpu_id():
     eax, ebx, ecx, edx = cpuid(1)
     return f"{edx:08X}{eax:08X}"
 
-
 device_id = ""
 instance_id = str(uuid.uuid4())
 cpu_id = get_cpu_id()
 
-
-# curl -X POST https://127.0.0.1:8445/auth/license -H "Content-Type: application/json"\
-#      -d '{"uuid": "adfde574-ed2f-42d6-9d79-a09a98c67932", "cpuid": "1F8BFBFF00090675", "mac": ["00:0c:29:93:59:dc", "00:0c:29:e4:6f:6c"]}'
-
-# 定义请求体
 auth_req = {
     "uuid": instance_id,
     "cpuid": cpu_id,
     "mac": ["00:0c:29:93:59:dc", "00:0c:29:e4:6f:6c"],
 }
 
-
-# 创建会话并安装自定义适配器
-session = requests.Session()
-session.mount('https://', Ssl1Adapter())
-
+def send_post_msg(url, en_data):
+    headers = {"Content-Type": "application/octet-stream"}  # 设置内容类型为二进制数据
+    response = requests.post(url, data=en_data, headers=headers)
+    return response
 
 def send_auth_req():
-    req = json.dumps(auth_req)
-    print(f"auth_req: {auth_req}\n")
+    data = json.dumps(auth_req)
+    print(f"data type: {type(data)}, data: {data}")
+    en_data = licensepy.encrypt_info(data)
+    print(f"en_data: {en_data}")
 
-    headers_ = {"Content-Type": "application/json"}
+    headers = {"Content-Type": "application/octet-stream"}  # 设置内容类型为二进制数据
+    response = requests.post(req_url, data=en_data, headers=headers)
 
-    # # 发送请求，验证服务器证书
-    # response = session.post(url, data=json_data, headers=headers, verify="server.crt")
-    # response.raise_for_status()  # 检查请求是否成功
+    print("Response:", response.content)
 
-    response = session.post(req_url, data=req, headers=headers_, verify="./config/server.crt")
-    print(response)
-    response.raise_for_status()  # 检查请求是否成功
-    response_data = response.json()
-    print("Response:", response_data)
-    
-    # response = requests.post(req_url, json=auth_req)
-    global device_id
-
-    if response.status_code == 200:
-        print("Request successful")
-        print(response)
-        rsp = response.json()
-        print("Response: ", rsp)
-        if rsp:
-            device_id = rsp.get("deviceid", "")
-    else:
-        print(f"Request failed with status code {response.status_code}")
-        print("Response:", response.text)
+    de_data = licensepy.decrypt_info(response.content)
+    print(f"de_data: {de_data}")
 
 
 def send_rel_msg():
@@ -99,12 +65,30 @@ def main():
         time.sleep(30)
         print(f'30s send echo req')
         msg = {"deviceid": device_id, "uuid": instance_id}
-        response = requests.post(echo_url, json=msg)
+        response = send_post_msg(echo_url, encrypt_info(json.dumps(msg)))
         print(response)
+
+
+def test():
+    # 示例：AES 加解密
+    plaintext = '{"action": "get_license", "user": "JohnDoe", "key": "123456"}'
+    key = ""  # 密钥，必须与 C++ 端一致
+
+    # 加密
+    encrypted_data = licensepy.encrypt_info(plaintext)
+    print(f"Encrypted: {encrypted_data}")
 
 
 if __name__ == "__main__":
     try:
         main()
+        # test()
     except Exception as e:
         print(f"error {e}")
+
+
+
+# curl -X POST https://127.0.0.1:8445/auth/license -H "Content-Type: application/json"\
+#      -d '{"uuid": "adfde574-ed2f-42d6-9d79-a09a98c67932", "cpuid": "1F8BFBFF00090675", "mac": ["00:0c:29:93:59:dc", "00:0c:29:e4:6f:6c"]}'
+
+# 定义请求体

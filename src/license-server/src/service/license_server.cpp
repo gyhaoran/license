@@ -3,6 +3,7 @@
 #include "domain/event/event.h"
 #include "domain/handler/handle_event.h"
 #include "infra/log/log.h"
+#include "utils.h"
 #include <hv/HttpServer.h>
 #include <hv/HttpResponseWriter.h>
 #include <hv/hasync.h>
@@ -28,15 +29,21 @@ std::string handle_http_msg(EventId id, const std::string& msg)
 void send_http_rsp(const HttpResponseWriterPtr& writer, const std::string& rsp)
 {
     LOG_INFO("send_http_rsp msg: %s", rsp.c_str());
-    writer->End(rsp);
+    auto encode_msg = encrypt_info(rsp);
+    
+    writer->WriteHeader("Content-Type", "application/octet-stream");
+    writer->End(encode_msg);
 }
 
 void handle_authen_req(const std::string& msg, const HttpResponseWriterPtr& writer)
 {
     try 
     {
-        LOG_INFO("Rcv EV_AUTHRIZATION_REQ msg: %s", msg.c_str());
-        auto rsp = handle_http_msg(EV_AUTHRIZATION_REQ, msg);
+        LOG_INFO("Rcv EV_AUTHRIZATION_REQ origin msg: %s", msg.c_str());
+        auto decode_msg = decrypt_info(msg);
+        LOG_INFO("Rcv EV_AUTHRIZATION_REQ decode_msg: %s", decode_msg.c_str());
+        
+        auto rsp = handle_http_msg(EV_AUTHRIZATION_REQ, decode_msg);
         send_http_rsp(writer, rsp);
     } 
     catch (const std::exception& e) 
@@ -88,6 +95,7 @@ void handle_inst_echo(const std::string& msg, const HttpResponseWriterPtr& write
 LicenseServer::LicenseServer(int port) : port_{port}, service_{new ::hv::HttpService()} 
 {
     service_->POST("/auth/license",  [](const HttpRequestPtr& req, const HttpResponseWriterPtr& writer) {
+        std::cout << req->GetHeader("Content-Type") << '\n';
         handle_authen_req(req->body, writer);
     });
 
@@ -111,18 +119,6 @@ void LicenseServer::run()
     static hv::HttpServer server;
     server.service = service_;
     server.port = port_;
-
-    server.https_port = 8445;
-    hssl_ctx_opt_t param;
-    memset(&param, 0, sizeof(param));
-    param.crt_file = EnvParser::get_server_cert_path().c_str();
-    param.key_file = EnvParser::get_server_key_path().c_str();
-    param.endpoint = HSSL_SERVER;
-    if (server.newSslCtx(&param) != 0) 
-    {
-        LOG_ERROR("new SSL_CTX failed!");
-        return;
-    }
 
     server.run();
     ::hv::async::cleanup();

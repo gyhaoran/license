@@ -6,8 +6,8 @@
 namespace lic
 {
 
-std::string decrypt_info(const std::string& data, const std::string& key);    
-std::string encrypt_info(const std::string& data, const std::string& key);
+std::string decrypt_info(const std::string& data, const std::string& key="");    
+std::string encrypt_info(const std::string& data, const std::string& key="");
 
 } // namespace lic
 

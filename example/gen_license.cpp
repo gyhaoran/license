@@ -87,7 +87,6 @@ void generate_license(const std::string& private_key_path, const std::string& li
         {"issue_date", "20240101 000000"},
         {"expiration", "20250101 000000"}
     };
-
     std::string plaintext = license_info.dump();
 
     std::string encrypted_data = encrypt_info(plaintext, aes_key);
