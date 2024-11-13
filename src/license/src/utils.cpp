@@ -138,7 +138,6 @@ std::string decrypt_info(const std::string& data, const std::string& key)
     if (key.empty())
     {
         decoded_data = base64_decode(data);
-        std::cout << "decoded_data: " << decoded_data << '\n';
     }
 
     if (decoded_data.size() < AES_BLOCK_SIZE) 

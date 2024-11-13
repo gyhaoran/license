@@ -17,6 +17,7 @@ def get_cpu_id():
     eax, ebx, ecx, edx = cpuid(1)
     return f"{edx:08X}{eax:08X}"
 
+
 device_id = ""
 instance_id = str(uuid.uuid4())
 cpu_id = get_cpu_id()
@@ -27,31 +28,34 @@ auth_req = {
     "mac": ["00:0c:29:93:59:dc", "00:0c:29:e4:6f:6c"],
 }
 
+
 def send_post_msg(url, en_data):
-    headers = {"Content-Type": "application/octet-stream"}  # 设置内容类型为二进制数据
+    headers = {"Content-Type": "application/octet-stream"}
     response = requests.post(url, data=en_data, headers=headers)
     return response
 
+
 def send_auth_req():
     data = json.dumps(auth_req)
-    print(f"data type: {type(data)}, data: {data}")
     en_data = licensepy.encrypt_info(data)
-    print(f"en_data: {en_data}")
+    response = send_post_msg(req_url, en_data)
 
-    headers = {"Content-Type": "application/octet-stream"}  # 设置内容类型为二进制数据
-    response = requests.post(req_url, data=en_data, headers=headers)
-
-    print("Response:", response.content)
-
-    de_data = licensepy.decrypt_info(response.content)
-    print(f"de_data: {de_data}")
+    if response.status_code == 200:
+        rsp = licensepy.decrypt_info(response.content)
+        print(f"rsp: {rsp}")
+        global device_id
+        if rsp:
+            device_id = rsp.get("deviceid", "")
+    else:
+        print(f"Request failed with status code {response.status_code}")
+        print("Response:", response.text)
 
 
 def send_rel_msg():
     if device_id:
         inst_rel_msg = {"deviceid": device_id, "uuid": instance_id}
         response = requests.post(rel_url, json=inst_rel_msg)
-        print(response)
+        print(f"inst release ack: {response}")
 
 
 def init():
@@ -59,36 +63,18 @@ def init():
 
 
 def main():
-    # init()
+    init()
     send_auth_req()
     while True:
+        print(f"waitting 30s to send echo req")
         time.sleep(30)
-        print(f'30s send echo req')
         msg = {"deviceid": device_id, "uuid": instance_id}
-        response = send_post_msg(echo_url, encrypt_info(json.dumps(msg)))
-        print(response)
-
-
-def test():
-    # 示例：AES 加解密
-    plaintext = '{"action": "get_license", "user": "JohnDoe", "key": "123456"}'
-    key = ""  # 密钥，必须与 C++ 端一致
-
-    # 加密
-    encrypted_data = licensepy.encrypt_info(plaintext)
-    print(f"Encrypted: {encrypted_data}")
+        response = send_post_msg(echo_url, licensepy.encrypt_info(json.dumps(msg)))
+        print(f"time echo ack: {response}")
 
 
 if __name__ == "__main__":
     try:
         main()
-        # test()
     except Exception as e:
         print(f"error {e}")
-
-
-
-# curl -X POST https://127.0.0.1:8445/auth/license -H "Content-Type: application/json"\
-#      -d '{"uuid": "adfde574-ed2f-42d6-9d79-a09a98c67932", "cpuid": "1F8BFBFF00090675", "mac": ["00:0c:29:93:59:dc", "00:0c:29:e4:6f:6c"]}'
-
-# 定义请求体

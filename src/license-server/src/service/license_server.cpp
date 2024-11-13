@@ -95,7 +95,6 @@ void handle_inst_echo(const std::string& msg, const HttpResponseWriterPtr& write
 LicenseServer::LicenseServer(int port) : port_{port}, service_{new ::hv::HttpService()} 
 {
     service_->POST("/auth/license",  [](const HttpRequestPtr& req, const HttpResponseWriterPtr& writer) {
-        std::cout << req->GetHeader("Content-Type") << '\n';
         handle_authen_req(req->body, writer);
     });
 

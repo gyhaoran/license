@@ -9,17 +9,18 @@
 #include "json.hpp"
 #include <iostream>
 #include <csignal>
+#include <hv/hlog.h>
 
 namespace lic
 {
 
-std::map<std::string, int> parse_json_object(const nlohmann::json& j) 
+std::map<std::string, int> parse_json_object(const nlohmann::json& msg) 
 {
     std::map<std::string, int> result;
 
-    if (j.is_object()) 
+    if (msg.is_object()) 
     {
-        for (const auto& [key, value] : j.items()) 
+        for (const auto& [key, value] : msg.items()) 
         {
             if (value.is_number_integer()) 
             {
@@ -53,8 +54,16 @@ void reg_signal()
     signal(SIGTERM, signal_handler);
 }
 
+void init_log()
+{
+    hlog_set_level(LOG_LEVEL_ERROR);
+    hlog_set_file("/tmp/iCell/log/lic-service-end.log");
+}
+
 void init()
 {
+    init_log();
+
     auto license_info = get_license_info(EnvParser::get_license_path());
     auto info = nlohmann::json::parse(license_info);
 
