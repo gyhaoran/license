@@ -5,8 +5,8 @@ project(license-manager)
 include(cmake/build.cmake)
 include(cmake/dependency.cmake)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -w")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -w")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -w")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -pthread -w")
 
 set(JSON_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rd/nlohmann)
 set(LICENSE_PATH  ${CMAKE_CURRENT_SOURCE_DIR}/src/license)

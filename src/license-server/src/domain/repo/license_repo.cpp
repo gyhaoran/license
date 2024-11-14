@@ -38,6 +38,7 @@ void LicenseRepo::remove_device(const DeviceId& id)
 
 void LicenseRepo::recover_devices(const DeviceInfos& devices)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     for (const auto& [id, value] : devices) 
     {
         if (auto it = devices_.find(id); it != devices_.end()) 
@@ -140,18 +141,18 @@ void LicenseRepo::update_instance(const DeviceId& device_id, const InstanceId& i
 
 void LicenseRepo::remove_inactive_inst(int timeout)
 {
-    auto now = std::chrono::steady_clock::now();
     std::lock_guard<std::mutex> lock(mutex_);
     for (auto& [device_id, device] : devices_) 
     {
         for (auto it = device.instances.begin(); it != device.instances.end(); ) 
         {
             auto last_heartbeat = it->second.last_heartbeat;
-            auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - last_heartbeat).count();
-
-            if (duration > timeout) 
+            auto now = std::chrono::steady_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - last_heartbeat).count();
+            int64_t timeout_us = timeout * 1000 * 1000;
+            if (duration > timeout_us) 
             {
-                LOG_INFO("inst_id: %s, duration %lld, timeout: %d", it->first.c_str(), duration, timeout);
+                LOG_INFO("inst_id: %s, duration %lld, timeout: %lld", it->first.c_str(), duration, timeout_us);
                 it = device.instances.erase(it);
             } 
             else 
@@ -166,6 +167,13 @@ void LicenseRepo::clear_device()
 {
     devices_.clear();
 }
+
+void LicenseRepo::clear()
+{
+    period_ = LicensePeriod();
+    devices_.clear();
+}
+
 
 void LicenseRepo::dump()
 {

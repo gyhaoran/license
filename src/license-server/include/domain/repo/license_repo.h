@@ -29,6 +29,7 @@ DEF_SINGLETON(LicenseRepo)
     void update_instance(const DeviceId&, const InstanceId&);
 
     void clear_device();
+    void clear();
     void dump();
 
     void remove_inactive_inst(int timeout);

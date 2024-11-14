@@ -3,17 +3,33 @@
 
 #include "domain/repo/license_repo.h"
 #include <string>
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <condition_variable>
 
 namespace lic
 {
 
 struct SerializationService
 {
-    explicit SerializationService(const std::string& file);
+    explicit SerializationService(const std::string& file, int save_time=300);
     
+    ~SerializationService();
+
     void run();
+    void stop();
+
+private:
+    void periodic_save();
+
 private:
     std::string save_file_;
+    int save_time_;
+    std::atomic<bool> stop_flag_;
+    std::thread thread_;
+    std::condition_variable cv_;
+    std::mutex mutex_;
 };
 
 void save_to_file(const DeviceInfos& devices, const std::string& filename);

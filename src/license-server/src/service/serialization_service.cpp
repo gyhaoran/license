@@ -9,25 +9,88 @@
 namespace lic
 {
 
+namespace
+{
+
 std::mutex obj_mutex;
 
-void periodic_save(const std::string& filename, std::chrono::seconds interval) 
+void try_to_remove(const std::string& file) 
 {
-    while (true) 
+    if (access(file.c_str(), F_OK) == 0) 
     {
-        std::this_thread::sleep_for(interval);
-        save_to_file(LicenseRepo::get_instance().devices(), filename);
+        if (remove(file.c_str()) != 0) 
+        {
+            LOG_ERROR("Error removing file: %s, errno info: %s", file.c_str(), std::strerror(errno));
+        }
+    } 
+    else
+    {
+        LOG_ERROR("Error removing file: %s, errno info: %s", file.c_str(), std::strerror(errno));
     }
 }
 
-SerializationService::SerializationService(const std::string& file) : save_file_{file}
+} // namespace
+
+
+SerializationService::SerializationService(const std::string& file, int save_time) 
+: save_file_{file}, save_time_{save_time}, stop_flag_{false}
 {
+}
+
+SerializationService::~SerializationService()
+{
+    stop();
+}
+
+void SerializationService::periodic_save() 
+{
+    while (true) 
+    {
+        try 
+        {
+            if (stop_flag_.load()) 
+            { 
+                return; 
+            }
+
+            for (int i = 0; i < save_time_; ++i) 
+            {
+                std::unique_lock<std::mutex> lock(mutex_);
+                if (cv_.wait_for(lock, std::chrono::seconds(1), [this]() { return stop_flag_.load(); })) 
+                {
+                    return;
+                }                      
+            }
+            save_to_file(LicenseRepo::get_instance().devices(), save_file_);
+        }
+        catch (const std::exception& e) 
+        {
+            LOG_ERROR("Exception in evict_inactive_instances: %s", e.what());
+        }
+        catch (...) 
+        {
+            LOG_FATAL("Unknown exception in evict_inactive_instances, errno info: %s", std::strerror(errno));
+        }
+    }
+}
+
+void SerializationService::stop()
+{
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        stop_flag_ = true;
+    }
+
+    cv_.notify_all();
+    if (thread_.joinable()) 
+    {
+        thread_.join();
+    }
 }
 
 void SerializationService::run()
 {
-    std::thread save_thread(periodic_save, save_file_, std::chrono::seconds(300));
-    save_thread.detach();
+    thread_ = std::thread(&SerializationService::periodic_save, this);
 }
 
 void save_to_file(const DeviceInfos& devices, const std::string& filename) 
@@ -55,6 +118,7 @@ bool load_from_file(const std::string& filename, DeviceInfos& devices)
         std::ifstream ifs(filename, std::ios::binary);
         if (!ifs) 
         {
+            LOG_WARN("load_from_file error");
             return false;
         }
         boost::archive::binary_iarchive ia(ifs);
@@ -67,7 +131,7 @@ bool load_from_file(const std::string& filename, DeviceInfos& devices)
     }
     catch(...)
     {
-        LOG_ERROR("load_from_file unexpect exception");
+        LOG_ERROR("load_from_file unexpect exception, errno info: %s", std::strerror(errno));
         return false;
     }
 

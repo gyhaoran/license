@@ -56,12 +56,12 @@ void handle_http_req(EventId id, const HttpRequestPtr& req, const HttpResponseWr
     } 
     catch (const std::exception& e) 
     {
-        LOG_ERROR("Handle Event: %s, error: %s", ev_id_str(id), e.what());
+        LOG_ERROR("Handle Event: %s error: %s", ev_id_str(id), e.what());
         send_http_bad_rsp(writer);
     }
     catch (...)
     {
-        LOG_ERROR("Handle Event: %s, error.", ev_id_str(id));
+        LOG_ERROR("Handle Event: %s error, errno info: %s", ev_id_str(id), std::strerror(errno));
         send_http_bad_rsp(writer);
     }
 }
