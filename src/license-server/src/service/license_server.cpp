@@ -68,7 +68,7 @@ void handle_http_req(EventId id, const HttpRequestPtr& req, const HttpResponseWr
 
 } // namespace
 
-LicenseServer::LicenseServer(int port) : port_{port}, service_{new ::hv::HttpService()} 
+LicenseServer::LicenseServer(int port) : port_{port}, service_{new ::hv::HttpService()}, server_{new hv::HttpServer()}
 {
     service_->POST("/auth/license",  [](const HttpRequestPtr& req, const HttpResponseWriterPtr& writer) {
         handle_http_req(EV_AUTHRIZATION_REQ, req, writer);
@@ -87,17 +87,31 @@ LicenseServer::~LicenseServer()
 {
     delete service_;
     service_ = nullptr;
+
+    delete server_;
+    server_ = nullptr;
 }
 
-void LicenseServer::run()
+void LicenseServer::stop()
 {
-    static hv::HttpServer server;
-    server.service = service_;
-    server.port = port_;
+    server_->stop();
+}
 
-    server.run();
-    ::hv::async::cleanup();
-    // std::atexit(::hv::async::cleanup);
+void LicenseServer::run(bool wait)
+{
+    server_->service = service_;
+    server_->port = port_;
+
+    if (wait)
+    {
+        server_->run();
+        ::hv::async::cleanup();
+    }
+    else
+    {
+        server_->start();
+        std::atexit(::hv::async::cleanup);
+    }
 }
 
 } // namespace lic
