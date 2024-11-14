@@ -2,6 +2,7 @@
 #include "domain/event/event.h"
 #include "domain/handler/auth_req_handler.h"
 #include "domain/handler/instance_rel_handler.h"
+#include "domain/handler/instance_echo_handler.h"
 #include "infra/log/log.h"
 
 #include <functional>
@@ -17,6 +18,7 @@ std::map<EventId, BaseMsgHandler*> all_handlers =
 {
     {EV_AUTHRIZATION_REQ,     new AuthReqHandler()},
     {EV_INSTANCE_REL,         new InstanceRelHandler()},
+    {EV_INSTANCE_ECHO,        new InstanceEchoHandler()},
 };
 
 } // namespace

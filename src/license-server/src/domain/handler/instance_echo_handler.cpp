@@ -41,8 +41,6 @@ bool InstanceEchoHandler::handle(Event& event, const nlohmann::json& msg)
     auto echo_msg = parse_inst_echo_msg(msg);
     
     LicenseRepo::get_instance().update_instance(echo_msg.device_id, echo_msg.instance_id);
-    json rsp = {{"status", "Success"}}; // TODO: will removed in future
-    event.update_rsp_msg(rsp.dump());
 
     return true;
 }

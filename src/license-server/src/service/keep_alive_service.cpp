@@ -22,7 +22,7 @@ void evict_inactive_instances(int timeout_seconds, std::chrono::seconds interval
         }
         catch (const std::exception& e) 
         {
-            LOG_FATAL("Exception in evict_inactive_instances: %s", e.what());
+            LOG_ERROR("Exception in evict_inactive_instances: %s", e.what());
         }
         catch (...) 
         {
@@ -39,7 +39,6 @@ KeepAliveService::KeepAliveService(int timeout_seconds) : timeout_seconds_{timeo
 
 void KeepAliveService::run()
 {
-    // evict_inactive_instances(timeout_seconds_, std::chrono::seconds(60));
     std::thread save_thread(evict_inactive_instances, timeout_seconds_, std::chrono::seconds(60));
     save_thread.detach();
 }

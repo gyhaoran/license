@@ -48,6 +48,7 @@ void log_print(LogLevel level, const char(&file)[Len], unsigned int line, const 
     {
         msg += fmt;
     }
+    std::cout << color_fmt_of(level) << std::string("[") + to_string(level) + "]: " << msg << color_fmt_of(LogLevel::NONE) << std::endl;
     infra_print(level, msg.c_str());
 }
 

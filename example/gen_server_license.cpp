@@ -102,6 +102,7 @@ void generate_license(const std::string& private_key_path, const std::string& li
     std::string random_data2 = generate_aes_key(8);
     std::string confused_aes_key = random_data1 + aes_key + random_data2;
     std::string device_hash = get_device_hash(true, "ens33");
+    auto device_hash_2 = gen_device_hash("1F8BFBFF00090675", "00:0c:29:e2:43:83");
 
     json license_info = {
         {"id", lic_id},
@@ -110,8 +111,7 @@ void generate_license(const std::string& private_key_path, const std::string& li
         {"expire_date", "20250101 000000"},
         {"devices", {
             {device_hash, 1},
-            {generate_random_id(32), 1},
-            {generate_random_id(32), 1},
+            {device_hash_2, 2},
         }}
     };
 

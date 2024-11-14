@@ -28,7 +28,7 @@ DEF_SINGLETON(LicenseRepo)
     bool validate(const AuthReqMsg&, ::nlohmann::json&);
     void update_instance(const DeviceId&, const InstanceId&);
 
-    void clear();
+    void clear_device();
     void dump();
 
     void remove_inactive_inst(int timeout);

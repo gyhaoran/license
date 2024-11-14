@@ -18,7 +18,9 @@ namespace
 
 std::string handle_http_msg(EventId id, const std::string& msg)
 {
-    Event event(id, msg);
+    auto decode_msg = decrypt_info(msg);
+
+    Event event(id, decode_msg);
     if (!handle_event(event))
     {
         LOG_WARN("EventId %u handle failed", id);
@@ -27,66 +29,40 @@ std::string handle_http_msg(EventId id, const std::string& msg)
 }
 
 void send_http_rsp(const HttpResponseWriterPtr& writer, const std::string& rsp)
-{
-    LOG_INFO("send_http_rsp msg: %s", rsp.c_str());
-    auto encode_msg = encrypt_info(rsp);
-    
+{   
+    if (rsp.empty())
+    {
+        writer->End();
+        return;
+    }
+
+    auto encode_msg = encrypt_info(rsp);    
     writer->WriteHeader("Content-Type", "application/octet-stream");
     writer->End(encode_msg);
 }
 
-void handle_authen_req(const std::string& msg, const HttpResponseWriterPtr& writer)
+void send_http_bad_rsp(const HttpResponseWriterPtr& writer)
+{
+    writer->WriteStatus(HTTP_STATUS_BAD_REQUEST);
+    writer->End();
+}
+
+void handle_http_req(EventId id, const HttpRequestPtr& req, const HttpResponseWriterPtr& writer)
 {
     try 
     {
-        LOG_INFO("Rcv EV_AUTHRIZATION_REQ origin msg: %s", msg.c_str());
-        auto decode_msg = decrypt_info(msg);
-        LOG_INFO("Rcv EV_AUTHRIZATION_REQ decode_msg: %s", decode_msg.c_str());
-        
-        auto rsp = handle_http_msg(EV_AUTHRIZATION_REQ, decode_msg);
+        auto rsp = handle_http_msg(id, req->body);
         send_http_rsp(writer, rsp);
     } 
     catch (const std::exception& e) 
     {
-        LOG_ERROR("Handle EV_AUTHRIZATION_REQ error: %s", e.what());
-        writer->WriteStatus(HTTP_STATUS_BAD_REQUEST);
-        writer->End(R"({"status": "Failure", "message": "unkonwn"})");
+        LOG_ERROR("Handle Event: %s, error: %s", ev_id_str(id), e.what());
+        send_http_bad_rsp(writer);
     }
     catch (...)
     {
-        LOG_ERROR("Handle EV_AUTHRIZATION_REQ error:");
-        writer->WriteStatus(HTTP_STATUS_BAD_REQUEST);
-        writer->End(R"({"status": "Failure", "message": "unkonwn"})");
-    }
-}
-
-void handle_inst_release(const std::string& msg, const HttpResponseWriterPtr& writer)
-{
-    try 
-    {
-        LOG_INFO("Rcv EV_INSTANCE_REL msg: %s", msg.c_str());
-        auto rsp = handle_http_msg(EV_INSTANCE_REL, msg);
-        writer->End();
-    } 
-    catch (const std::exception& e) 
-    {
-        LOG_ERROR("Handle EV_INSTANCE_REL error: %s", e.what());
-        writer->End();
-    }
-}
-
-void handle_inst_echo(const std::string& msg, const HttpResponseWriterPtr& writer)
-{
-    try 
-    {
-        LOG_INFO("Rcv EV_INSTANCE_ECHO msg: %s", msg.c_str());
-        writer->End();
-        auto rsp = handle_http_msg(EV_INSTANCE_ECHO, msg);
-    } 
-    catch (const std::exception& e) 
-    {
-        LOG_ERROR("Handle EV_INSTANCE_ECHO error: %s", e.what());
-        writer->End();
+        LOG_ERROR("Handle Event: %s, error.", ev_id_str(id));
+        send_http_bad_rsp(writer);
     }
 }
 
@@ -95,15 +71,15 @@ void handle_inst_echo(const std::string& msg, const HttpResponseWriterPtr& write
 LicenseServer::LicenseServer(int port) : port_{port}, service_{new ::hv::HttpService()} 
 {
     service_->POST("/auth/license",  [](const HttpRequestPtr& req, const HttpResponseWriterPtr& writer) {
-        handle_authen_req(req->body, writer);
+        handle_http_req(EV_AUTHRIZATION_REQ, req, writer);
     });
 
     service_->POST("/inst/rel",  [](const HttpRequestPtr& req, const HttpResponseWriterPtr& writer) {
-        handle_inst_release(req->body, writer);
+        handle_http_req(EV_INSTANCE_REL, req, writer);
     });
 
     service_->POST("/inst/echo", [](const HttpRequestPtr& req, const HttpResponseWriterPtr& writer) {
-        handle_inst_echo(req->body, writer);
+        handle_http_req(EV_INSTANCE_ECHO, req, writer);
     });
 }
 

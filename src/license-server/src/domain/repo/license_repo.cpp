@@ -149,10 +149,9 @@ void LicenseRepo::remove_inactive_inst(int timeout)
             auto last_heartbeat = it->second.last_heartbeat;
             auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - last_heartbeat).count();
 
-            LOG_INFO("inst_id: %s, duration %lld, timeout: %d", it->first.c_str(), duration, timeout);
-
             if (duration > timeout) 
             {
+                LOG_INFO("inst_id: %s, duration %lld, timeout: %d", it->first.c_str(), duration, timeout);
                 it = device.instances.erase(it);
             } 
             else 
@@ -163,7 +162,7 @@ void LicenseRepo::remove_inactive_inst(int timeout)
     }
 }
 
-void LicenseRepo::clear()
+void LicenseRepo::clear_device()
 {
     devices_.clear();
 }

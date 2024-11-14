@@ -57,7 +57,7 @@ void reg_signal()
 void init_log()
 {
     hlog_set_level(LOG_LEVEL_ERROR);
-    hlog_set_file("/tmp/iCell/log/lic-service-end.log");
+    hlog_set_file("/tmp/.iCell/logs/lic-service-end.log");
 }
 
 void init()

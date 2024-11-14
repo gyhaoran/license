@@ -9,7 +9,7 @@ namespace lic
 namespace
 {
 
-auto spd_logger = spdlog::rotating_logger_mt("License-Server", "/tmp/iCell/log/lic-server.log", 1048576*5, 1);
+auto spd_logger = spdlog::rotating_logger_mt("License-Server", "/tmp/.iCell/logs/lic-server.log", 1048576*5, 1);
 
 }
 
