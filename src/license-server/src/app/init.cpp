@@ -60,12 +60,30 @@ void init_log()
     hlog_set_file("/tmp/.iCell/logs/lic-service-end.log");
 }
 
+nlohmann::json parse_license_info()
+{
+    auto license_info = get_license_info(EnvParser::get_license_path());
+    if (license_info.empty())
+    {
+        std::cerr << "License Error, please make license valid\n";
+        std::exit(1);
+    }
+    
+    auto info = nlohmann::json::parse(license_info, nullptr, false);
+    if (info.is_discarded())
+    {
+        std::cerr << "License Content Error, please make license valid\n";
+        std::exit(1);
+    }
+
+    return info;
+}
+
 void init()
 {
     init_log();
 
-    auto license_info = get_license_info(EnvParser::get_license_path());
-    auto info = nlohmann::json::parse(license_info);
+    auto info = parse_license_info();
 
     auto issue_date = info["issue_date"];
     auto expire_date = info["expire_date"];

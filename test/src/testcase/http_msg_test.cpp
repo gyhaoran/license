@@ -30,10 +30,20 @@ struct HttpMsgTest : BaseFixture
         device_id_2{gen_device_hash(VALID_CPU_ID_2, VALID_MAC_ID_2)},
         history_{LicenseRepo::get_instance().devices()}
     {
-        server_.run(wait);
+        start();
     }
 
     ~HttpMsgTest()
+    {
+        stop();
+    }
+
+    void start()
+    {
+        server_.run(false);
+    }
+
+    void stop()
     {
         server_.stop();
     }
@@ -65,48 +75,68 @@ struct HttpMsgTest : BaseFixture
         LicenseRepo::get_instance().clear();
     }
 
-    std::string send_inst_echo_msg(const DeviceId& device_id, const InstanceId& inst_id)
+    requests::Response send_inst_echo_http_msg(const DeviceId& device_id, const InstanceId& inst_id)
+    {
+        json inst_echo_msg = {
+            {"deviceid", device_id},
+            {"uuid", inst_id}
+        };
+
+        auto msg = encrypt_info(inst_echo_msg.dump());
+        http_headers headers;
+        headers["Content-Type"] = "application/octet-stream";
+        auto rsp = requests::post("http://127.0.0.1:8442/inst/echo", msg, headers);
+
+        return rsp;
+    }
+
+    requests::Response send_instance_rel_http_msg(const DeviceId& device_id, const InstanceId& inst_id)
     {
         json inst_rel_msg = {
             {"deviceid", device_id},
             {"uuid", inst_id}
         };
 
-        Event event{EV_INSTANCE_ECHO, inst_rel_msg.dump()};
-        handle_event(event);
-        return event.get_rsp_msg();
+        auto msg = encrypt_info(inst_rel_msg.dump());
+        http_headers headers;
+        headers["Content-Type"] = "application/octet-stream";
+        auto rsp = requests::post("http://127.0.0.1:8442/inst/rel", msg, headers);
+
+        return rsp;
     }
 
-    std::string send_instance_rel_msg(const DeviceId& device_id, const InstanceId& inst_id)
+    requests::Response send_auth_req_http_msg(const json& req)
     {
-        json inst_rel_msg = {
-            {"deviceid", device_id},
-            {"uuid", inst_id}
-        };
+        auto msg = encrypt_info(req.dump());
+        http_headers headers;
+        headers["Content-Type"] = "application/octet-stream";
 
-        Event event{EV_INSTANCE_REL, inst_rel_msg.dump()};
-        handle_event(event);
-        return event.get_rsp_msg();
+        auto rsp = requests::post("http://127.0.0.1:8442/auth/license", msg, headers);
+        return rsp;
     }
 
-    std::string send_auth_req_msg(const InstanceId& inst_id, const std::string& cpuid=VALID_CPU_ID_1, const std::string& mac_id=VALID_MAC_ID_1)
+    requests::Response send_auth_req_http_msg(const InstanceId& inst_id, const std::string& cpuid=VALID_CPU_ID_1, const std::string& mac_id=VALID_MAC_ID_1)
     {
         json req = {
             {"uuid", inst_id},
             {"cpuid", cpuid},
             {"mac", {mac_id}},
         };
+        return send_auth_req_http_msg(req);
+    }
 
-        auto msg = encrypt_info(req.dump());
-
-
-        http_headers headers;
-        headers["Content-Type"] = "application/octet-stream";
-        auto resp = requests::post("http://127.0.0.1:8442/auth/req", msg, headers);
-
-        Event event{EV_AUTHRIZATION_REQ, req.dump()};
-        handle_event(event);
-        return event.get_rsp_msg();
+    void check_auth_rsp(const json& rsp, const DeviceId& device_id, bool success=true, const std::string& message="")
+    {
+        if (success)
+        {
+            EXPECT_EQ(rsp["status"], "Success");
+            EXPECT_EQ(rsp["deviceid"], device_id);
+        }
+        else
+        {
+            EXPECT_EQ(rsp["status"], "Failure");
+            EXPECT_EQ(rsp["message"], message);
+        }
     }
 
 protected:
@@ -121,7 +151,194 @@ private:
 
 TEST_F(HttpMsgTest, device_1_send_auth_req_rcv_success)
 {
-    send_auth_req_msg(INSTANCE_ID_1);
+    auto rsp = send_auth_req_http_msg(INSTANCE_ID_1);
+    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+
+    auto msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1);
+}
+
+TEST_F(HttpMsgTest, rcv_device_auth_req_reach_max_inst)
+{
+    /* Device1 instance-1 */
+    auto rsp = send_auth_req_http_msg(INSTANCE_ID_1);
+    auto msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1);
+
+    /* Device1 instance-2 (only support 1 inst, inst2 will be reject) */
+    rsp = send_auth_req_http_msg(INSTANCE_ID_2);
+    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+    msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1, false, "Max instance limit reached");
+}
+
+TEST_F(HttpMsgTest, auth_req_and_after_inst_relase_then_can_auth_success)
+{
+    /* Device1 instance-1 */
+    auto rsp = send_auth_req_http_msg(INSTANCE_ID_1);
+    auto msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1);
+
+    /* release inst-1 */
+    send_instance_rel_http_msg(device_id_1, INSTANCE_ID_1);
+
+    rsp = send_auth_req_http_msg(INSTANCE_ID_1);
+    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+    msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1);
+}
+
+TEST_F(HttpMsgTest, client_echo_msg_send_normal_inst_should_keep_alive)
+{
+    /* Device1 instance-1 */
+    auto rsp = send_auth_req_http_msg(INSTANCE_ID_1);
+    auto msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1);
+
+    rsp = send_auth_req_http_msg(INSTANCE_ID_2);
+    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+    msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1, false, "Max instance limit reached");
+
+    int inactive_time = 2;
+    KeepAliveService service(inactive_time);
+    service.run();
+
+    for (int i = 0; i < inactive_time; ++i)
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        auto rsp = send_inst_echo_http_msg(device_id_1, INSTANCE_ID_1);
+        EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+
+        rsp = send_auth_req_http_msg(INSTANCE_ID_2);
+        EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+        msg = json::parse(decrypt_info(rsp->body));
+        check_auth_rsp(msg, device_id_1, false, "Max instance limit reached");
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+    rsp = send_auth_req_http_msg(INSTANCE_ID_1);
+    msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1);
+}
+
+TEST_F(HttpMsgTest, multi_client_send_license_auth_req_http_msg)
+{
+    /* Device1 instance-1 */
+    auto rsp = send_auth_req_http_msg(INSTANCE_ID_1);
+    auto msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1);
+
+    /* Device2 instance-1 */
+    rsp = send_auth_req_http_msg(INSTANCE_ID_1, VALID_CPU_ID_2, VALID_MAC_ID_2);
+    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+    msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_2);
+    
+    /* Device2 instance-2 */
+    rsp = send_auth_req_http_msg(INSTANCE_ID_2, VALID_CPU_ID_2, VALID_MAC_ID_2);
+    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+    msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_2);
+}
+
+TEST_F(HttpMsgTest, device_1_multi_mac_one_correct_should_success)
+{
+    json req = {
+        {"uuid", INSTANCE_ID_1},
+        {"cpuid", VALID_CPU_ID_1},
+        {"mac", {IN_VALID_MAC_ID, VALID_MAC_ID_1}},
+    };
+    auto rsp = send_auth_req_http_msg(req);
+
+    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+    auto msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1);
+}
+
+
+/***************************** Error Case ******************************/
+
+TEST_F(HttpMsgTest, ErrorCase__auth_req_msg_content_error_no_instance_id)
+{
+    json req = {
+        {"cpuid", VALID_CPU_ID_1},
+        {"mac", {IN_VALID_MAC_ID, VALID_MAC_ID_1}},
+    };
+    auto rsp = send_auth_req_http_msg(req);
+    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+
+    auto msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1, false, "Device not authorized");
+}
+
+TEST_F(HttpMsgTest, ErrorCase__auth_req_msg_content_error_no_cpu_id)
+{
+    json req = {
+        {"uuid", INSTANCE_ID_1}, 
+        {"mac", {IN_VALID_MAC_ID, VALID_MAC_ID_1}},
+    };
+    auto rsp = send_auth_req_http_msg(req);
+    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+
+    auto msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1, false, "Device not authorized");
+}
+
+TEST_F(HttpMsgTest, ErrorCase__auth_req_msg_content_error_no_mac_addr)
+{
+    json req = {
+        {"uuid", INSTANCE_ID_1}, 
+        {"cpuid", VALID_CPU_ID_1},
+    };
+    auto rsp = send_auth_req_http_msg(req);
+    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+
+    auto msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1, false, "Device not authorized");
+}
+
+TEST_F(HttpMsgTest, ErrorCase__auth_req_msg_content_format_error)
+{
+    json req = {
+        {"uuid", INSTANCE_ID_1}, 
+        {"cpuid", VALID_CPU_ID_1},
+        {"mac", VALID_MAC_ID_1},
+    };
+    auto rsp = send_auth_req_http_msg(req);
+    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+
+    auto msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1, false, "Device not authorized");
+}
+
+TEST_F(HttpMsgTest, ErrorCase__auth_req_msg_cannot_reach_server)
+{
+    stop();
+    auto rsp = send_auth_req_http_msg(INSTANCE_ID_1);
+    EXPECT_EQ(rsp, nullptr);
+}
+
+TEST_F(HttpMsgTest, ErrorCase__inst_release_msg_cannot_reach_server)
+{
+    auto rsp = send_auth_req_http_msg(INSTANCE_ID_1);
+    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+
+    auto msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1);
+
+    stop();
+    rsp = send_instance_rel_http_msg(device_id_1, INSTANCE_ID_1);
+    EXPECT_EQ(rsp, nullptr);
+
+    rsp = send_auth_req_http_msg(INSTANCE_ID_2);
+    EXPECT_EQ(rsp, nullptr);
+
+    start();
+    rsp = send_auth_req_http_msg(INSTANCE_ID_2);   
+    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+    msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, device_id_1, false, "Max instance limit reached");
 }
 
 } // namespace lic_ft
