@@ -23,7 +23,7 @@ std::string handle_http_msg(EventId id, const std::string& msg)
     Event event(id, decode_msg);
     if (!handle_event(event))
     {
-        LOG_WARN("EventId %u handle failed", id);
+        LOG_WARN("EventId %u handle failed, detail rsp msg: %s", id, event.get_rsp_msg().c_str());
     }
     return event.get_rsp_msg();
 }

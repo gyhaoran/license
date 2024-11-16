@@ -50,18 +50,18 @@ struct HttpMsgTest : BaseFixture
 
     void setup() override
     {
-        LicenseRepo::get_instance().clear_device();
-
-        LicenseRepo::get_instance().add_device(device_id_1, DeviceInfo{device_id_1, 1});
-        LicenseRepo::get_instance().add_device(device_id_2, DeviceInfo{device_id_2, 2});
+        LicenseRepo::get_instance().clear_instances();
+        LicenseRepo::get_instance().set_max_instance(2);
+        LicenseRepo::get_instance().add_device(device_id_1);
+        LicenseRepo::get_instance().add_device(device_id_2);
     }
 
     void teardown() override
     {
-        LicenseRepo::get_instance().clear_device();
-        for (auto& [id, value] : history_)
+        LicenseRepo::get_instance().clear_instances();
+        for (auto& id : history_)
         {
-            LicenseRepo::get_instance().add_device(id, value);
+            LicenseRepo::get_instance().add_device(id);
         }
     }
 
@@ -75,10 +75,9 @@ struct HttpMsgTest : BaseFixture
         LicenseRepo::get_instance().clear();
     }
 
-    requests::Response send_inst_echo_http_msg(const DeviceId& device_id, const InstanceId& inst_id)
+    requests::Response send_inst_echo_http_msg(const InstanceId& inst_id)
     {
         json inst_echo_msg = {
-            {"deviceid", device_id},
             {"uuid", inst_id}
         };
 
@@ -90,10 +89,9 @@ struct HttpMsgTest : BaseFixture
         return rsp;
     }
 
-    requests::Response send_instance_rel_http_msg(const DeviceId& device_id, const InstanceId& inst_id)
+    requests::Response send_instance_rel_http_msg(const InstanceId& inst_id)
     {
         json inst_rel_msg = {
-            {"deviceid", device_id},
             {"uuid", inst_id}
         };
 
@@ -125,17 +123,18 @@ struct HttpMsgTest : BaseFixture
         return send_auth_req_http_msg(req);
     }
 
-    void check_auth_rsp(const json& rsp, const DeviceId& device_id, bool success=true, const std::string& message="")
+    void check_auth_rsp(const json& rsp, const InstanceId& inst_id, bool success=true, const std::string& message="")
     {
         if (success)
         {
-            EXPECT_EQ(rsp["status"], "Success");
-            EXPECT_EQ(rsp["deviceid"], device_id);
+            ASSERT_EQ(rsp["status"], "Success");
+            ASSERT_TRUE(rsp.contains("uuid"));
+            ASSERT_EQ(rsp["uuid"], inst_id);
         }
         else
         {
-            EXPECT_EQ(rsp["status"], "Failure");
-            EXPECT_EQ(rsp["message"], message);
+            ASSERT_EQ(rsp["status"], "Failure");
+            ASSERT_EQ(rsp["message"], message);
         }
     }
 
@@ -155,37 +154,36 @@ TEST_F(HttpMsgTest, device_1_send_auth_req_rcv_success)
     EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
 
     auto msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_1);
+    check_auth_rsp(msg, INSTANCE_ID_1);
 }
 
 TEST_F(HttpMsgTest, rcv_device_auth_req_reach_max_inst)
 {
-    /* Device1 instance-1 */
-    auto rsp = send_auth_req_http_msg(INSTANCE_ID_1);
-    auto msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_1);
+    send_auth_req_http_msg(INSTANCE_ID_1);
+    send_auth_req_http_msg(INSTANCE_ID_2);
 
-    /* Device1 instance-2 (only support 1 inst, inst2 will be reject) */
-    rsp = send_auth_req_http_msg(INSTANCE_ID_2);
+    auto rsp = send_auth_req_http_msg(INSTANCE_ID_3);
     EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
-    msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_1, false, "Max instance limit reached");
+    auto msg = json::parse(decrypt_info(rsp->body));
+    check_auth_rsp(msg, INSTANCE_ID_3, false, "Max instance limit reached");
 }
 
 TEST_F(HttpMsgTest, auth_req_and_after_inst_relase_then_can_auth_success)
 {
-    /* Device1 instance-1 */
-    auto rsp = send_auth_req_http_msg(INSTANCE_ID_1);
+    send_auth_req_http_msg(INSTANCE_ID_1);
+    send_auth_req_http_msg(INSTANCE_ID_2);
+
+    auto rsp = send_auth_req_http_msg(INSTANCE_ID_3);
+    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
     auto msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_1);
+    check_auth_rsp(msg, INSTANCE_ID_3, false, "Max instance limit reached");
 
-    /* release inst-1 */
-    send_instance_rel_http_msg(device_id_1, INSTANCE_ID_1);
+    send_instance_rel_http_msg(INSTANCE_ID_1);
 
-    rsp = send_auth_req_http_msg(INSTANCE_ID_1);
+    rsp = send_auth_req_http_msg(INSTANCE_ID_3);
     EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
     msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_1);
+    check_auth_rsp(msg, INSTANCE_ID_3);
 }
 
 TEST_F(HttpMsgTest, client_echo_msg_send_normal_inst_should_keep_alive)
@@ -193,12 +191,11 @@ TEST_F(HttpMsgTest, client_echo_msg_send_normal_inst_should_keep_alive)
     /* Device1 instance-1 */
     auto rsp = send_auth_req_http_msg(INSTANCE_ID_1);
     auto msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_1);
+    check_auth_rsp(msg, INSTANCE_ID_1);
 
     rsp = send_auth_req_http_msg(INSTANCE_ID_2);
-    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
     msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_1, false, "Max instance limit reached");
+    check_auth_rsp(msg, INSTANCE_ID_2);
 
     int inactive_time = 2;
     KeepAliveService service(inactive_time);
@@ -207,19 +204,22 @@ TEST_F(HttpMsgTest, client_echo_msg_send_normal_inst_should_keep_alive)
     for (int i = 0; i < inactive_time; ++i)
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-        auto rsp = send_inst_echo_http_msg(device_id_1, INSTANCE_ID_1);
-        EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
+        send_inst_echo_http_msg(INSTANCE_ID_1);
+        send_inst_echo_http_msg(INSTANCE_ID_2);
 
-        rsp = send_auth_req_http_msg(INSTANCE_ID_2);
+        rsp = send_auth_req_http_msg(INSTANCE_ID_3);
+        ASSERT_TRUE(rsp);
         EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
         msg = json::parse(decrypt_info(rsp->body));
-        check_auth_rsp(msg, device_id_1, false, "Max instance limit reached");
+        check_auth_rsp(msg, INSTANCE_ID_3, false, "Max instance limit reached");
     }
 
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-    rsp = send_auth_req_http_msg(INSTANCE_ID_1);
+    std::this_thread::sleep_for(std::chrono::seconds(4));
+
+    LOG_INFO("sleep 4s end");
+    rsp = send_auth_req_http_msg(INSTANCE_ID_3);
     msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_1);
+    check_auth_rsp(msg, INSTANCE_ID_3);
 }
 
 TEST_F(HttpMsgTest, multi_client_send_license_auth_req_http_msg)
@@ -227,19 +227,13 @@ TEST_F(HttpMsgTest, multi_client_send_license_auth_req_http_msg)
     /* Device1 instance-1 */
     auto rsp = send_auth_req_http_msg(INSTANCE_ID_1);
     auto msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_1);
+    check_auth_rsp(msg, INSTANCE_ID_1);
 
     /* Device2 instance-1 */
-    rsp = send_auth_req_http_msg(INSTANCE_ID_1, VALID_CPU_ID_2, VALID_MAC_ID_2);
-    EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
-    msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_2);
-    
-    /* Device2 instance-2 */
     rsp = send_auth_req_http_msg(INSTANCE_ID_2, VALID_CPU_ID_2, VALID_MAC_ID_2);
     EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
     msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_2);
+    check_auth_rsp(msg, INSTANCE_ID_2);
 }
 
 TEST_F(HttpMsgTest, device_1_multi_mac_one_correct_should_success)
@@ -253,7 +247,7 @@ TEST_F(HttpMsgTest, device_1_multi_mac_one_correct_should_success)
 
     EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
     auto msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_1);
+    check_auth_rsp(msg, INSTANCE_ID_1);
 }
 
 
@@ -269,7 +263,7 @@ TEST_F(HttpMsgTest, ErrorCase__auth_req_msg_content_error_no_instance_id)
     EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
 
     auto msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_1, false, "Device not authorized");
+    check_auth_rsp(msg, "", false, "Device not authorized");
 }
 
 TEST_F(HttpMsgTest, ErrorCase__auth_req_msg_content_error_no_cpu_id)
@@ -322,23 +316,24 @@ TEST_F(HttpMsgTest, ErrorCase__auth_req_msg_cannot_reach_server)
 TEST_F(HttpMsgTest, ErrorCase__inst_release_msg_cannot_reach_server)
 {
     auto rsp = send_auth_req_http_msg(INSTANCE_ID_1);
+    rsp = send_auth_req_http_msg(INSTANCE_ID_2);
     EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
 
     auto msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_1);
+    check_auth_rsp(msg, INSTANCE_ID_2);
 
     stop();
-    rsp = send_instance_rel_http_msg(device_id_1, INSTANCE_ID_1);
+    rsp = send_instance_rel_http_msg(INSTANCE_ID_1);
     EXPECT_EQ(rsp, nullptr);
 
-    rsp = send_auth_req_http_msg(INSTANCE_ID_2);
+    rsp = send_auth_req_http_msg(INSTANCE_ID_3);
     EXPECT_EQ(rsp, nullptr);
 
     start();
-    rsp = send_auth_req_http_msg(INSTANCE_ID_2);   
+    rsp = send_auth_req_http_msg(INSTANCE_ID_3);
     EXPECT_EQ(rsp->status_code, HTTP_STATUS_OK);
     msg = json::parse(decrypt_info(rsp->body));
-    check_auth_rsp(msg, device_id_1, false, "Max instance limit reached");
+    check_auth_rsp(msg, INSTANCE_ID_1, false, "Max instance limit reached");
 }
 
 } // namespace lic_ft

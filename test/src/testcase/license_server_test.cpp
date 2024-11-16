@@ -30,19 +30,19 @@ struct LicenseServerTest : BaseFixture
 
     void setup() override
     {
-        LicenseRepo::get_instance().clear_device();
+        LicenseRepo::get_instance().clear_instances();
 
-        LicenseRepo::get_instance().add_device(device_id_1, DeviceInfo{device_id_1, 1});
-        LicenseRepo::get_instance().add_device(device_id_2, DeviceInfo{device_id_2, 2});
+        LicenseRepo::get_instance().add_device(device_id_1);
+        LicenseRepo::get_instance().add_device(device_id_2);
         
     }
 
     void teardown() override
     {
-        LicenseRepo::get_instance().clear_device();
-        for (auto& [id, value] : history_)
+        LicenseRepo::get_instance().clear_instances();
+        for (auto& id : history_)
         {
-            LicenseRepo::get_instance().add_device(id, value);
+            LicenseRepo::get_instance().add_device(id);
         }
     }
 
@@ -56,22 +56,20 @@ struct LicenseServerTest : BaseFixture
         LicenseRepo::get_instance().clear();
     }
 
-    std::string send_inst_echo_msg(const DeviceId& device_id, const InstanceId& inst_id)
+    std::string send_inst_echo_msg(const InstanceId& inst_id)
     {
-        json inst_rel_msg = {
-            {"deviceid", device_id},
+        json inst_echo_msg = {
             {"uuid", inst_id}
         };
 
-        Event event{EV_INSTANCE_ECHO, inst_rel_msg.dump()};
+        Event event{EV_INSTANCE_ECHO, inst_echo_msg.dump()};
         handle_event(event);
         return event.get_rsp_msg();
     }
 
-    std::string send_instance_rel_msg(const DeviceId& device_id, const InstanceId& inst_id)
+    std::string send_instance_rel_msg(const InstanceId& inst_id)
     {
         json inst_rel_msg = {
-            {"deviceid", device_id},
             {"uuid", inst_id}
         };
 
@@ -101,7 +99,7 @@ struct LicenseServerTest : BaseFixture
         if (success)
         {
             EXPECT_EQ(rsp["status"], "Success");
-            EXPECT_EQ(rsp["deviceid"], device_id_1);
+            EXPECT_EQ(rsp["uuid"], inst_id);
         }
         else
         {
@@ -116,7 +114,7 @@ struct LicenseServerTest : BaseFixture
         auto rsp = json::parse(msg);
 
         EXPECT_EQ(rsp["status"], "Success");
-        EXPECT_EQ(rsp["deviceid"], device_id_2);
+        EXPECT_EQ(rsp["uuid"], inst_id);
     }
 
 protected:
@@ -159,7 +157,8 @@ TEST_F(LicenseServerTest, device_2_send_2_times_auth_req_rcv_success)
 TEST_F(LicenseServerTest, rcv_device_auth_req_reach_max_inst)
 {
     device_1_send_auth_req_msg(INSTANCE_ID_1, true);
-    device_1_send_auth_req_msg(INSTANCE_ID_2, false, "Max instance limit reached");
+    device_1_send_auth_req_msg(INSTANCE_ID_2, true);
+    device_1_send_auth_req_msg(INSTANCE_ID_3, false, "Max instance limit reached");
 }
 
 TEST_F(LicenseServerTest, rcv_device_auth_req_license_expired)
@@ -180,35 +179,37 @@ TEST_F(LicenseServerTest, rcv_device_auth_req_license_expired)
 TEST_F(LicenseServerTest, after_old_inst_release_then_new_inst_auth_success)
 {
     device_1_send_auth_req_msg(INSTANCE_ID_1);
-    device_1_send_auth_req_msg(INSTANCE_ID_2, false, "Max instance limit reached");
-    send_instance_rel_msg(device_id_1, INSTANCE_ID_1);
     device_1_send_auth_req_msg(INSTANCE_ID_2);
+    device_1_send_auth_req_msg(INSTANCE_ID_3, false, "Max instance limit reached");
+    send_instance_rel_msg(INSTANCE_ID_1);
+    device_1_send_auth_req_msg(INSTANCE_ID_3);
 }
 
 TEST_F(LicenseServerTest, multi_device_multi_inst_auth_success)
 {
     device_1_send_auth_req_msg(INSTANCE_ID_1);
-    device_2_send_auth_req_msg(INSTANCE_ID_1);
     device_2_send_auth_req_msg(INSTANCE_ID_2);
 }
 
 TEST_F(LicenseServerTest, alive_service_remove_timeout_inst_success)
 {
     device_1_send_auth_req_msg(INSTANCE_ID_1);
-    device_1_send_auth_req_msg(INSTANCE_ID_2, false, "Max instance limit reached");
+    device_1_send_auth_req_msg(INSTANCE_ID_2);
+    device_1_send_auth_req_msg(INSTANCE_ID_3, false, "Max instance limit reached");
 
     int inactive_time = 1;
     KeepAliveService service(inactive_time);
     service.run();
-    std::this_thread::sleep_for(std::chrono::seconds(5*inactive_time));
+    std::this_thread::sleep_for(std::chrono::seconds(3*inactive_time));
 
-    device_1_send_auth_req_msg(INSTANCE_ID_2);
+    device_1_send_auth_req_msg(INSTANCE_ID_3);
 }
 
 TEST_F(LicenseServerTest, client_echo_msg_send_normal_inst_should_keep_alive)
 {
     device_1_send_auth_req_msg(INSTANCE_ID_1);
-    device_1_send_auth_req_msg(INSTANCE_ID_2, false, "Max instance limit reached");
+    device_1_send_auth_req_msg(INSTANCE_ID_2);
+    device_1_send_auth_req_msg(INSTANCE_ID_3, false, "Max instance limit reached");
 
     int inactive_time = 3;
     KeepAliveService service(inactive_time);
@@ -217,18 +218,21 @@ TEST_F(LicenseServerTest, client_echo_msg_send_normal_inst_should_keep_alive)
     for (int i = 0; i < 2*inactive_time; ++i)
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-        send_inst_echo_msg(device_id_1, INSTANCE_ID_1);
-        device_1_send_auth_req_msg(INSTANCE_ID_2, false, "Max instance limit reached");
+        send_inst_echo_msg(INSTANCE_ID_1);
+        send_inst_echo_msg(INSTANCE_ID_2);
+        device_1_send_auth_req_msg(INSTANCE_ID_3, false, "Max instance limit reached");
     }
 }
 
 TEST_F(LicenseServerTest, client_send_echo_msg_and_server_no_this_inst_should_update_inst_info)
 {
     device_1_send_auth_req_msg(INSTANCE_ID_1);
-    device_1_send_auth_req_msg(INSTANCE_ID_1, false, "Max instance limit reached");
-    send_instance_rel_msg(device_id_1, INSTANCE_ID_1);
+    device_1_send_auth_req_msg(INSTANCE_ID_2);
+    device_1_send_auth_req_msg(INSTANCE_ID_3, false, "Max instance limit reached");
 
-    send_inst_echo_msg(device_id_1, INSTANCE_ID_1);
+    send_instance_rel_msg(INSTANCE_ID_1);
+
+    send_inst_echo_msg(INSTANCE_ID_1);
     device_1_send_auth_req_msg(INSTANCE_ID_1, false, "Max instance limit reached");
 }
 
@@ -239,7 +243,8 @@ TEST_F(LicenseServerTest, server_reboot_should_recover_history_info)
     service.run();
 
     device_1_send_auth_req_msg(INSTANCE_ID_1);
-    device_1_send_auth_req_msg(INSTANCE_ID_1, false, "Max instance limit reached");
+    device_1_send_auth_req_msg(INSTANCE_ID_2);
+    device_1_send_auth_req_msg(INSTANCE_ID_3, false, "Max instance limit reached");
 
     std::this_thread::sleep_for(std::chrono::seconds(2*save_period));
 
@@ -247,7 +252,7 @@ TEST_F(LicenseServerTest, server_reboot_should_recover_history_info)
     mock_power_off();
     mock_power_on();
 
-    device_1_send_auth_req_msg(INSTANCE_ID_1, false, "Max instance limit reached");
+    device_1_send_auth_req_msg(INSTANCE_ID_3, false, "Max instance limit reached");
 }
 
 } // namespace lic_ft

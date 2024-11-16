@@ -32,8 +32,8 @@ private:
     std::mutex mutex_;
 };
 
-void save_to_file(const DeviceInfos& devices, const std::string& filename);
-bool load_from_file(const std::string& filename, DeviceInfos& devices);
+void save_to_file(const InstanceInfos&, const std::string&);
+bool load_from_file(const std::string&, InstanceInfos&);
 
 } // namespace lic
 

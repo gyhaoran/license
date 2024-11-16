@@ -61,7 +61,7 @@ void SerializationService::periodic_save()
                     return;
                 }                      
             }
-            save_to_file(LicenseRepo::get_instance().devices(), save_file_);
+            save_to_file(LicenseRepo::get_instance().instances(), save_file_);
         }
         catch (const std::exception& e) 
         {
@@ -93,7 +93,7 @@ void SerializationService::run()
     thread_ = std::thread(&SerializationService::periodic_save, this);
 }
 
-void save_to_file(const DeviceInfos& devices, const std::string& filename) 
+void save_to_file(const InstanceInfos& infos, const std::string& filename) 
 {
     try
     {
@@ -102,7 +102,7 @@ void save_to_file(const DeviceInfos& devices, const std::string& filename)
         if (!ofs) { return; }
 
         boost::archive::binary_oarchive oa(ofs);
-        oa << devices;
+        oa << infos;
     }
     catch(const std::exception& e)
     {
@@ -110,7 +110,7 @@ void save_to_file(const DeviceInfos& devices, const std::string& filename)
     }
 }
 
-bool load_from_file(const std::string& filename, DeviceInfos& devices) 
+bool load_from_file(const std::string& filename, InstanceInfos& infos) 
 {
     try
     {
@@ -122,7 +122,7 @@ bool load_from_file(const std::string& filename, DeviceInfos& devices)
             return false;
         }
         boost::archive::binary_iarchive ia(ifs);
-        ia >> devices;
+        ia >> infos;
     }
     catch(const std::exception& e)
     {

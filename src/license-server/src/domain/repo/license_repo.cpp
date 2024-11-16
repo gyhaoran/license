@@ -10,12 +10,12 @@ namespace lic
 namespace
 {
 
-void build_auth_rsp_msg(::nlohmann::json& rsp, const std::string& message, const DeviceId& device_id="", bool success=false)
+void build_auth_rsp_msg(::nlohmann::json& rsp, const std::string& message, const InstanceId& instance_id="", bool success=false)
 {
     if (success)
     {
         rsp["status"] = "Success";
-        rsp["deviceid"] = device_id;
+        rsp["uuid"] = instance_id;
     }
     else
     {
@@ -26,9 +26,9 @@ void build_auth_rsp_msg(::nlohmann::json& rsp, const std::string& message, const
 
 }
 
-void LicenseRepo::add_device(const DeviceId& id, const DeviceInfo& info)
+void LicenseRepo::add_device(const DeviceId& id)
 {
-    devices_[id] = info;
+    devices_.emplace(id);
 }
 
 void LicenseRepo::remove_device(const DeviceId& id)
@@ -36,22 +36,21 @@ void LicenseRepo::remove_device(const DeviceId& id)
     devices_.erase(id);
 }
 
-void LicenseRepo::recover_devices(const DeviceInfos& devices)
+void LicenseRepo::recover_devices(const InstanceInfos& insts)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    for (const auto& [id, value] : devices) 
-    {
-        if (auto it = devices_.find(id); it != devices_.end()) 
-        {
-            it->second = value;
-        }
-    }
+    instances_ = insts;
 }
 
- void LicenseRepo::set_license_period(const LicensePeriod& period)
- {
+void LicenseRepo::set_license_period(const LicensePeriod& period)
+{
     period_ = period;
- }
+}
+
+void LicenseRepo::set_max_instance(int num)
+{
+    max_inst_num_ = num;
+}
 
 bool LicenseRepo::validate(const AuthReqMsg& req, ::nlohmann::json& rsp)
 {
@@ -59,15 +58,9 @@ bool LicenseRepo::validate(const AuthReqMsg& req, ::nlohmann::json& rsp)
     for (const auto& mac : req.mac_addresses)
     {
         auto device_id = gen_device_hash(cpu_id, mac);
-
-        auto iter = devices_.find(device_id);
-        if (iter == devices_.end())
+        if (devices_.contains(device_id))
         {
-            continue;
-        }
-        else
-        {
-            return check(device_id, req.instance_id, rsp);
+            return check(req.instance_id, rsp);
         }
     }
     LOG_WARN("Device not authorized");
@@ -75,10 +68,9 @@ bool LicenseRepo::validate(const AuthReqMsg& req, ::nlohmann::json& rsp)
     return false;
 }
 
-bool LicenseRepo::check(const DeviceId& device_id, const InstanceId& instance_id, ::nlohmann::json& rsp)
+bool LicenseRepo::check(const InstanceId& instance_id, ::nlohmann::json& rsp)
 {
-    auto& device = devices_[device_id];
-    if (device.instances.size() >= device.max_instance)
+    if (instances_.size() >= max_inst_num_)
     {
         LOG_ERROR("Max instance limit reached");
         build_auth_rsp_msg(rsp, "Max instance limit reached");
@@ -92,99 +84,95 @@ bool LicenseRepo::check(const DeviceId& device_id, const InstanceId& instance_id
         return false;
     }
 
-    add_instance(device_id, instance_id);
+    add_instance(instance_id);
 
-    build_auth_rsp_msg(rsp, "License activate success", device_id, true);
+    build_auth_rsp_msg(rsp, "License activate success", instance_id, true);
     return true;
 }
 
-void LicenseRepo::add_instance(const DeviceId& device_id, const InstanceId& instance_id)
+void LicenseRepo::add_instance(const InstanceId& instance_id)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    auto& device = devices_[device_id];
-    if (device.instances.contains(instance_id))
+    if (instances_.contains(instance_id))
     {
-        device.instances[instance_id].last_heartbeat = std::chrono::steady_clock::now();
+        instances_[instance_id].last_heartbeat = std::chrono::steady_clock::now();
     }
     else
     {
-        device.instances[instance_id] = InstanceInfo{instance_id, std::chrono::steady_clock::now()};
+        instances_[instance_id] = InstanceInfo{instance_id, std::chrono::steady_clock::now()};
     }
 }
 
-void LicenseRepo::release_instance(const DeviceId& device_id, const InstanceId& instance_id)
+void LicenseRepo::release_instance(const InstanceId& instance_id)
 {
-    if (!devices_.contains(device_id))
+    if (!instances_.contains(instance_id))
     {
-        LOG_WARN("rel req, rcv invalid device_id: %s", device_id.c_str());
+        LOG_WARN("rel req, rcv invalid instance_id: %s", instance_id.c_str());
         return;
     }
 
-    auto& device = devices_[device_id];
-    if (device.instances.contains(instance_id))
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        device.instances.erase(instance_id);
-    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    instances_.erase(instance_id);
 }
 
-void LicenseRepo::update_instance(const DeviceId& device_id, const InstanceId& instance_id)
+void LicenseRepo::update_instance(const InstanceId& instance_id)
 {
-    if (!devices_.contains(device_id))
-    {
-        LOG_WARN("rcv invalid device_id: %s", device_id.c_str());
-        return;
-    }
-    
-    add_instance(device_id, instance_id);
+    add_instance(instance_id);
 }
 
 void LicenseRepo::remove_inactive_inst(int timeout)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    for (auto& [device_id, device] : devices_) 
+    for (auto it = instances_.begin(); it != instances_.end();) 
     {
-        for (auto it = device.instances.begin(); it != device.instances.end(); ) 
+        auto last_heartbeat = it->second.last_heartbeat;
+        auto now = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - last_heartbeat).count();
+        int64_t timeout_us = timeout * 1000 * 1000;
+        if (duration > timeout_us) 
         {
-            auto last_heartbeat = it->second.last_heartbeat;
-            auto now = std::chrono::steady_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - last_heartbeat).count();
-            int64_t timeout_us = timeout * 1000 * 1000;
-            if (duration > timeout_us) 
-            {
-                LOG_INFO("inst_id: %s, duration %lld, timeout: %lld", it->first.c_str(), duration, timeout_us);
-                it = device.instances.erase(it);
-            } 
-            else 
-            {
-                ++it;
-            }
+            LOG_INFO("inst_id: %s, duration %lld, timeout: %lld", it->first.c_str(), duration, timeout_us);
+            it = instances_.erase(it);
+        } 
+        else
+        {
+            ++it;
         }
     }
 }
 
-void LicenseRepo::clear_device()
+void LicenseRepo::clear_instances()
 {
-    devices_.clear();
+    instances_.clear();
 }
 
 void LicenseRepo::clear()
 {
+    max_inst_num_ = 1;
     period_ = LicensePeriod();
     devices_.clear();
+    instances_.clear();
 }
 
-
-void LicenseRepo::dump()
+void LicenseRepo::dump() const
 {
     std::cout << "LicenseRepo info:\n";
-    for (const auto& [id, value] : devices_) 
+    std::cout << "Max instance num: " << max_inst_num_ << '\n';
+    std::cout << "Cur instance num: " << instances_.size() << '\n';
+    std::cout << "InstanceInfos: [";
+    for (auto& [id, inst] : instances_)
     {
-        std::cout << "DeviceInfo: " << value.to_string() << '\n';
+        std::cout << inst.to_string() << ", ";
     }
+    std::cout << "]\n";
 }
 
-DeviceInfos& LicenseRepo::devices()
+InstanceInfos& LicenseRepo::instances()
+{
+    return instances_;
+}
+
+DeviceInfos LicenseRepo::devices() const
 {
     return devices_;
 }

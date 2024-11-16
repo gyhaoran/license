@@ -8,7 +8,6 @@ namespace lic
 
 struct InstEchoMsg
 {
-    std::string device_id{""};
     std::string instance_id{""};
 };
 

@@ -13,6 +13,7 @@ set(LICENSE_PATH  ${CMAKE_CURRENT_SOURCE_DIR}/src/license)
 set(LICENSE_SERVER_PATH  ${CMAKE_CURRENT_SOURCE_DIR}/src/license-server)
 
 set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/release/license-server")
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
 add_subdirectory(src)
 add_subdirectory(example)

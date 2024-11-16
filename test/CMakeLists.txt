@@ -24,8 +24,3 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME} license GTest::gtest spdlog::spdlog pthread hv_static OpenSSL::SSL OpenSSL::Crypto Boost::serialization)
-
-# Install rules       
-install(TARGETS ${PROJECT_NAME}
-    DESTINATION bin
-)

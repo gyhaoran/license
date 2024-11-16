@@ -5,43 +5,49 @@
 #include "domain/entities/license_period.h"
 #include "infra/singleton.h"
 #include "json.hpp"
-#include <map>
+#include <set>
 
 namespace lic
 {
 
 struct AuthReqMsg;
 struct LicensePeriod;
-using DeviceInfos = std::map<DeviceId, DeviceInfo>;
+using DeviceInfos = std::set<DeviceId>;
 
 DEF_SINGLETON(LicenseRepo)
 {
-    void add_device(const DeviceId&, const DeviceInfo&);
+    void add_device(const DeviceId&);
     void remove_device(const DeviceId&);
 
-    void add_instance(const DeviceId&, const InstanceId&);
-    void release_instance(const DeviceId&, const InstanceId&);
+    void add_instance(const InstanceId&);
+    void release_instance(const InstanceId&);
 
-    void recover_devices(const DeviceInfos&);
+    void recover_devices(const InstanceInfos&);
     void set_license_period(const LicensePeriod&);
 
-    bool validate(const AuthReqMsg&, ::nlohmann::json&);
-    void update_instance(const DeviceId&, const InstanceId&);
+    void set_max_instance(int);
 
-    void clear_device();
+    bool validate(const AuthReqMsg&, ::nlohmann::json&);
+    void update_instance(const InstanceId&);
+
+    void clear_instances();
     void clear();
-    void dump();
 
     void remove_inactive_inst(int timeout);
 
-    DeviceInfos& devices();
+    InstanceInfos& instances();
+    DeviceInfos devices() const;
+
+    void dump() const;
+private:
+    bool check(const InstanceId&, ::nlohmann::json&);
 
 private:
-    bool check(const DeviceId&, const InstanceId&, ::nlohmann::json&);
-
-private:
+    int max_inst_num_{1};
     LicensePeriod period_{};
     DeviceInfos devices_{};
+
+    InstanceInfos instances_{};
     std::mutex mutex_;
 };
     

@@ -12,14 +12,12 @@ using DeviceId = std::string;
 struct DeviceInfo
 {
     DeviceId device_id{""};
-    int max_instance{1};
     InstanceInfos instances{};
 
     std::string to_string() const
     {
         std::ostringstream oss;
-        oss << "id: " << device_id << ", current_instance: " << instances.size() 
-            << ", max_instance: " << max_instance << "\n";
+        oss << "device_id: " << device_id << ", current instance num: " << instances.size() << "\n";
 
         oss << "InstanceInfos: [";
         for (auto& [id, inst] : instances)
@@ -35,7 +33,6 @@ struct DeviceInfo
     void serialize(Archive& ar, const unsigned int version)
     {
         ar & boost::serialization::make_nvp("device_id", device_id);
-        ar & boost::serialization::make_nvp("max_instance", max_instance);
         ar & boost::serialization::make_nvp("instances", instances);
     }
 };

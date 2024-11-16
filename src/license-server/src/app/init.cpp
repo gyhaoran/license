@@ -7,34 +7,25 @@
 #include "license_parser.h"
 #include "hash.h"
 #include "json.hpp"
+#include <hv/hlog.h>
 #include <iostream>
 #include <csignal>
-#include <hv/hlog.h>
+#include <vector>
 
 namespace lic
 {
 
-std::map<std::string, int> parse_json_object(const nlohmann::json& msg) 
+std::vector<std::string> parse_json_object(const nlohmann::json& msg) 
 {
-    std::map<std::string, int> result;
+    std::vector<std::string> result;
 
-    if (msg.is_object()) 
+    if (msg.is_array()) 
     {
-        for (const auto& [key, value] : msg.items()) 
-        {
-            if (value.is_number_integer()) 
-            {
-                result[key] = value.get<int>();
-            }
-            else 
-            {
-                LOG_ERROR("Value for key: %s is not an integer.", key.c_str());
-            }
-        }
+        result = msg.get<std::vector<std::string>>();
     }
     else 
     {
-        LOG_ERROR("The provided JSON is not an object");
+        LOG_ERROR("The devices info is not an array in json");
     }
 
     return result;
@@ -43,7 +34,7 @@ std::map<std::string, int> parse_json_object(const nlohmann::json& msg)
 void signal_handler(int signum) 
 {
     LOG_ERROR("Rcv signal: %d", signum);
-    save_to_file(LicenseRepo::get_instance().devices(), EnvParser::get_data_path());
+    save_to_file(LicenseRepo::get_instance().instances(), EnvParser::get_data_path());
     std::exit(signum);
 }
 
@@ -87,21 +78,25 @@ void init()
 
     auto issue_date = info["issue_date"];
     auto expire_date = info["expire_date"];
+    int max_instance = info["max_instance"];
 
     auto& inst = LicenseRepo::get_instance();
     inst.set_license_period(LicensePeriod(issue_date, expire_date));
-
+    inst.set_max_instance(max_instance);
+    
     auto all_devices = parse_json_object(info["devices"]);
-    for (auto& [device_id, max_inst] : all_devices)
+    for (auto& device_id : all_devices)
     {
-        inst.add_device(device_id, DeviceInfo(device_id, max_inst));
+        inst.add_device(device_id);
     }
 
-    DeviceInfos device_infos{};
-    if (load_from_file(EnvParser::get_data_path(), device_infos))
+    inst.dump();
+    InstanceInfos instance_infos{};
+    if (load_from_file(EnvParser::get_data_path(), instance_infos))
     {
-        inst.recover_devices(device_infos);
+        inst.recover_devices(instance_infos);
     }
+    inst.dump();
 
     reg_signal();
 }
