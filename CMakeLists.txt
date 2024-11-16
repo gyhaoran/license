@@ -8,6 +8,7 @@ include(cmake/dependency.cmake)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -w")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -pthread -w")
 
+set(ARGPARSE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rd/argparse)
 set(JSON_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rd/nlohmann)
 set(LICENSE_PATH  ${CMAKE_CURRENT_SOURCE_DIR}/src/license)
 set(LICENSE_SERVER_PATH  ${CMAKE_CURRENT_SOURCE_DIR}/src/license-server)
