@@ -83,20 +83,18 @@ void init()
     auto& inst = LicenseRepo::get_instance();
     inst.set_license_period(LicensePeriod(issue_date, expire_date));
     inst.set_max_instance(max_instance);
-    
+
     auto all_devices = parse_json_object(info["devices"]);
     for (auto& device_id : all_devices)
     {
         inst.add_device(device_id);
     }
 
-    inst.dump();
     InstanceInfos instance_infos{};
     if (load_from_file(EnvParser::get_data_path(), instance_infos))
     {
         inst.recover_devices(instance_infos);
     }
-    inst.dump();
 
     reg_signal();
 }
