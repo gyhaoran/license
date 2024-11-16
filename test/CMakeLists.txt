@@ -19,6 +19,7 @@ add_executable(${PROJECT_NAME} ${test_files} "gtest_main.cpp")
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${JSON_PATH}
+    ${ARGPARSE_PATH}
     ${LICENSE_PATH}/include
     ${LICENSE_SERVER_PATH}/include
 )

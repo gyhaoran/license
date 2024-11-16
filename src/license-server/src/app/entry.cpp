@@ -1,5 +1,6 @@
 #include "app/entry.h"
 #include "app/config/env_parser.h"
+#include "app/config/arg_parser.h"
 #include "app/init.h"
 #include "service/license_server.h"
 #include "service/keep_alive_service.h"
@@ -23,6 +24,7 @@ void init_entry()
 
 void main_entry(int argc, char** argv)
 {
+    ArgParser::parse_arguments(argc, argv);
     init_entry();
     
     SerializationService service(EnvParser::get_data_path());
