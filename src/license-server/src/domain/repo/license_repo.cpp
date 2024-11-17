@@ -1,5 +1,6 @@
 #include "domain/repo/license_repo.h"
 #include "domain/msg/auth_req_msg.h"
+#include "infra/utils/uuid.h"
 #include "infra/log/log.h"
 #include "device.h"
 #include <iostream>
@@ -52,7 +53,7 @@ void LicenseRepo::set_max_instance(int num)
     max_inst_num_ = num;
 }
 
-bool LicenseRepo::validate(const AuthReqMsg& req, ::nlohmann::json& rsp)
+bool LicenseRepo::validate_auth_req(const AuthReqMsg& req, ::nlohmann::json& rsp)
 {
     auto& cpu_id = req.cpu_id;
     for (const auto& mac : req.mac_addresses)
@@ -60,7 +61,7 @@ bool LicenseRepo::validate(const AuthReqMsg& req, ::nlohmann::json& rsp)
         auto device_id = gen_device_hash(cpu_id, mac);
         if (devices_.contains(device_id))
         {
-            return check(req.instance_id, rsp);
+            return validate(rsp);
         }
     }
     LOG_WARN("Device not authorized");
@@ -68,7 +69,7 @@ bool LicenseRepo::validate(const AuthReqMsg& req, ::nlohmann::json& rsp)
     return false;
 }
 
-bool LicenseRepo::check(const InstanceId& instance_id, ::nlohmann::json& rsp)
+bool LicenseRepo::validate(::nlohmann::json& rsp)
 {
     if (instances_.size() >= max_inst_num_)
     {
@@ -84,6 +85,7 @@ bool LicenseRepo::check(const InstanceId& instance_id, ::nlohmann::json& rsp)
         return false;
     }
 
+    auto instance_id = uuid_1();
     add_instance(instance_id);
 
     build_auth_rsp_msg(rsp, "License activate success", instance_id, true);

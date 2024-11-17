@@ -27,7 +27,7 @@ DEF_SINGLETON(LicenseRepo)
 
     void set_max_instance(int);
 
-    bool validate(const AuthReqMsg&, ::nlohmann::json&);
+    bool validate_auth_req(const AuthReqMsg&, ::nlohmann::json&);
     void update_instance(const InstanceId&);
 
     void clear_instances();
@@ -40,7 +40,7 @@ DEF_SINGLETON(LicenseRepo)
 
     void dump() const;
 private:
-    bool check(const InstanceId&, ::nlohmann::json&);
+    bool validate(::nlohmann::json&);
 
 private:
     int max_inst_num_{1};
