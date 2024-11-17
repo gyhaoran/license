@@ -1,8 +1,8 @@
 #include "app/config/arg_parser.h"
+#include "infra/log/log.h"
 #include "argparse.hpp"
 #include <iostream>
 #include <string>
-
 
 namespace lic
 {
@@ -25,9 +25,8 @@ void ArgParser::parse_arguments(int argc, char* argv[])
     bool log_enabled = args.get<bool>("log");
     if (log_enabled)
     {
-        std::cout << "Logging enabled: " << std::boolalpha << log_enabled << "\n";
+        set_log_switch(true);
     }
 }
 
 } // namespace lic
-
