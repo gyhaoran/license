@@ -107,6 +107,7 @@ void save_to_file(const InstanceInfos& infos, const std::string& filename)
     catch(const std::exception& e)
     {
         LOG_ERROR("save_to_file error: %s", e.what());
+        try_to_remove(filename);
     }
 }
 
@@ -127,11 +128,13 @@ bool load_from_file(const std::string& filename, InstanceInfos& infos)
     catch(const std::exception& e)
     {
         LOG_ERROR("load_from_file exception: %s", e.what());
+        try_to_remove(filename);
         return false;
     }
     catch(...)
     {
         LOG_ERROR("load_from_file unexpect exception, errno info: %s", std::strerror(errno));
+        try_to_remove(filename);
         return false;
     }
 

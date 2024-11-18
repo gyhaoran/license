@@ -28,12 +28,8 @@ add_subdirectory(python)
 # Install rules
 install(TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION license-client/lib
-    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                GROUP_READ GROUP_EXECUTE
-                WORLD_READ WORLD_EXECUTE)
+)
 
 install(FILES ${LIBHV_PATH}/lib/libhv.so
         DESTINATION license-client/lib
-        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                    GROUP_READ GROUP_EXECUTE
-                    WORLD_READ WORLD_EXECUTE)
+)

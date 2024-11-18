@@ -46,18 +46,10 @@ function(install_real_files_from_targets targets dest_dir)
 
             execute_process(COMMAND readlink -f ${target_path} OUTPUT_VARIABLE real_file OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-            install(FILES ${target_path}
-                    DESTINATION ${dest_dir}
-                    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE 
-                                GROUP_READ GROUP_EXECUTE 
-                                WORLD_READ WORLD_EXECUTE)
+            install(FILES ${target_path} DESTINATION ${dest_dir})
 
             if (NOT "${target_path}" STREQUAL "${real_file}")
-                install(FILES ${real_file}
-                        DESTINATION ${dest_dir}
-                        PERMISSIONS     OWNER_READ OWNER_WRITE OWNER_EXECUTE 
-                        GROUP_READ GROUP_EXECUTE 
-                        WORLD_READ WORLD_EXECUTE)
+                install(FILES ${real_file} DESTINATION ${dest_dir})
             endif()
         else()
             message(FATAL_ERROR "Target ${target} not found!")
@@ -67,11 +59,8 @@ endfunction()
 
 function(install_library_targets targets destination)
     foreach(target_name ${targets})
-        install(FILES $<TARGET_FILE:${target_name}>
-                DESTINATION ${destination}
-                PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-                            GROUP_READ GROUP_EXECUTE
-                            WORLD_READ WORLD_EXECUTE)
+        install(FILES $<TARGET_FILE:${target_name}> 
+                DESTINATION ${destination})
     endforeach()
 endfunction()
 

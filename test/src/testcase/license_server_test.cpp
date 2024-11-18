@@ -48,6 +48,7 @@ struct LicenseServerTest : BaseFixture
     void mock_power_on()
     {
         lic::init();
+        LicenseRepo::get_instance().set_max_instance(2);
     }
 
     void mock_power_off()
@@ -96,13 +97,13 @@ struct LicenseServerTest : BaseFixture
 
         if (success)
         {
-            EXPECT_EQ(rsp["status"], "Success");
+            EXPECT_EQ(rsp["status"], "success");
             EXPECT_TRUE(rsp.contains("uuid"));
             return rsp["uuid"].get<std::string>();
         }
         else
         {
-            EXPECT_EQ(rsp["status"], "Failure");
+            EXPECT_EQ(rsp["status"], "failure");
             EXPECT_EQ(rsp["message"], message);
         }
         return "";
@@ -113,7 +114,7 @@ struct LicenseServerTest : BaseFixture
         auto msg = send_auth_req_msg(VALID_CPU_ID_2, VALID_MAC_ID_2);
         auto rsp = json::parse(msg);
 
-        EXPECT_EQ(rsp["status"], "Success");
+        EXPECT_EQ(rsp["status"], "success");
         EXPECT_TRUE(rsp.contains("uuid"));
 
         return rsp["uuid"].get<std::string>();
@@ -144,7 +145,7 @@ TEST_F(LicenseServerTest, no_auth_device_rcv_auth_failure)
 {
     auto msg = send_auth_req_msg(IN_VALID_CPU_ID, IN_VALID_MAC_ID);
     auto rsp = json::parse(msg);
-    EXPECT_EQ(rsp["status"], "Failure");
+    EXPECT_EQ(rsp["status"], "failure");
     EXPECT_EQ(rsp["message"], "Device not authorized");
 }
 
@@ -252,9 +253,10 @@ TEST_F(LicenseServerTest, server_reboot_should_recover_history_info)
     device_1_send_auth_req_msg();
     device_1_send_auth_req_msg(false, "Max instance limit reached");
 
-    std::this_thread::sleep_for(std::chrono::seconds(2*save_period));
+    std::this_thread::sleep_for(std::chrono::seconds(3*save_period));
 
     service.stop();
+        
     mock_power_off();
     mock_power_on();
 

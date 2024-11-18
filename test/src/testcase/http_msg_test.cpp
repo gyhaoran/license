@@ -126,13 +126,13 @@ struct HttpMsgTest : BaseFixture
     {
         if (success)
         {
-            EXPECT_EQ(rsp["status"], "Success");
+            EXPECT_EQ(rsp["status"], "success");
             EXPECT_TRUE(rsp.contains("uuid"));
             return rsp["uuid"].get<std::string>();
         }
         else
         {
-            EXPECT_EQ(rsp["status"], "Failure");
+            EXPECT_EQ(rsp["status"], "failure");
             EXPECT_EQ(rsp["message"], message);
         }
         return "";
