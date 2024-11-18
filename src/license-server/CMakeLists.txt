@@ -30,5 +30,9 @@ target_link_libraries(${PROJECT_NAME}
 
 # Install rules       
 install(TARGETS ${PROJECT_NAME}
-    DESTINATION bin
+    DESTINATION license-server/bin
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/license-server/lib"
 )

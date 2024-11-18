@@ -15,7 +15,7 @@ file(GLOB_RECURSE all_files
 add_library(${PROJECT_NAME} SHARED ${all_files})
 target_link_libraries(${PROJECT_NAME} 
     pthread
-    hv_static
+    hv
     OpenSSL::SSL OpenSSL::Crypto
 )
 
@@ -23,9 +23,9 @@ add_subdirectory(python)
 
 # Install rules
 install(TARGETS ${PROJECT_NAME}
-    DESTINATION lib
+    LIBRARY DESTINATION license-client/lib
 )
 
-# install(FILES include/verify.h
-#     DESTINATION include
-# )
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/license-client/lib"
+)

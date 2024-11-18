@@ -18,7 +18,7 @@ add_subdirectory(python)
 
 # Install rules
 install(TARGETS ${PROJECT_NAME}
-    DESTINATION lib
+    DESTINATION license-server/lib
 )
 
 # install(FILES include/verify.h include/device.h

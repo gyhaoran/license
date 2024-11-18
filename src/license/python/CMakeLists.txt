@@ -25,5 +25,5 @@ target_link_libraries(${PROJECT_NAME} license ${Python3_LIBRARIES})
 
 # Install rules
 install(TARGETS ${PROJECT_NAME}
-    DESTINATION lib
+    DESTINATION license-server/lib
 )

@@ -34,7 +34,7 @@ void KeepAliveService::evict_inactive_instances()
                 if (cv_.wait_for(lock, std::chrono::seconds(1), [this]() { return stop_flag_.load(); })) 
                 {
                     return;
-                }                      
+                }
             }
 
             LicenseRepo::get_instance().remove_inactive_inst(inactive_time_);

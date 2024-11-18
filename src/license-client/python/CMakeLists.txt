@@ -21,9 +21,13 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${pybind11_INCLUDE_DIRS}
 )
 
-target_link_libraries(${PROJECT_NAME} license ${Python3_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} licensecli ${Python3_LIBRARIES})
 
 # Install rules
 install(TARGETS ${PROJECT_NAME}
-    DESTINATION lib
+    DESTINATION license-client/lib
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/license-client/lib"
 )
