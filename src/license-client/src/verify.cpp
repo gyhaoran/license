@@ -36,7 +36,8 @@ std::string get_cpuid_info()
     return oss.str();
 }
 
-bool is_virtual_interface(const char *iface_name) {
+bool is_virtual_interface(const char *iface_name) 
+{
     return (strncmp(iface_name, "lo", 2) == 0 ||
             strncmp(iface_name, "docker", 6) == 0 ||
             strncmp(iface_name, "veth", 4) == 0 ||
@@ -98,10 +99,11 @@ struct LicenseValidator
 
     ~LicenseValidator()
     {
-        destory();
+        std::cout << "LicenseValidator destory\n";
+        stop();
     }
 
-    void destory()
+    void stop()
     {
         if (!inst_id_.empty())
         {
@@ -111,46 +113,9 @@ struct LicenseValidator
         }
     }
 
-    void start_heart_beat_msg()
+    void run()
     {
-        while (true) 
-        {
-            try 
-            {
-                if (stop_flag_.load()) 
-                { 
-                    return; 
-                }
-                for (int i = 0; i < period_; ++i) 
-                {
-                    std::unique_lock<std::mutex> lock(mutex_);
-                    if (cv_.wait_for(lock, std::chrono::seconds(1), [this]() { return stop_flag_.load(); })) 
-                    {
-                        return;
-                    }
-                }
-
-                send_inst_echo_http_msg();
-            }
-            catch (const std::exception& e) 
-            {
-                return;
-            }
-        }
-    }
-
-    void stop_heart_beat_msg()
-    {
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            stop_flag_ = true;
-        }
-
-        cv_.notify_all();
-        if (thread_.joinable()) 
-        {
-            thread_.join();
-        }
+        thread_ = std::thread(&LicenseValidator::start_heart_beat_msg, this);
     }
 
     bool send_auth_req_http_msg(const std::string& cpuid, const std::vector<std::string>& mac_addrs)
@@ -159,8 +124,6 @@ struct LicenseValidator
             {"cpuid", cpuid},
             {"mac", mac_addrs},
         };
-
-        std::cout << req << '\n';
 
         auto rsp = send_auth_req_http_msg(req);
         if (!rsp)
@@ -221,11 +184,7 @@ private:
             }
             else
             {
-                if (!msg.contains("uuid"))
-                {
-                    std::cerr << "License validate failure: rcv error msg from license server\n";
-                    return false;
-                }
+                return handle_failed_rsp(msg);
             }
         }
         catch(const std::exception& e)
@@ -256,6 +215,11 @@ private:
         auto rel_url = std::string("http://") + ip_ + ":" + std::to_string(port_) + "/inst/rel";
         auto rsp = requests::post(rel_url.c_str(), msg, headers);
 
+        if (rsp && rsp->status_code == HTTP_STATUS_OK)
+        {
+            std::cout << "send_instance_rel_http_msg success\n";
+        }
+
         return rsp;
     }
 
@@ -274,6 +238,49 @@ private:
         return rsp;
     }
 
+    void start_heart_beat_msg()
+    {
+        while (true) 
+        {
+            try 
+            {
+                if (stop_flag_.load()) 
+                { 
+                    return; 
+                }
+                for (int i = 0; i < period_; ++i) 
+                {
+                    std::unique_lock<std::mutex> lock(mutex_);
+                    if (cv_.wait_for(lock, std::chrono::seconds(1), [this]() { return stop_flag_.load(); })) 
+                    {
+                        return;
+                    }
+                }
+                
+                std::cout << "client send heart_beat_msg, period: " << period_ << "s\n";
+                send_inst_echo_http_msg();
+            }
+            catch (const std::exception& e) 
+            {
+                return;
+            }
+        }
+    }
+
+    void stop_heart_beat_msg()
+    {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            stop_flag_ = true;
+        }
+
+        cv_.notify_all();
+        if (thread_.joinable()) 
+        {
+            thread_.join();
+        }
+    }
+
 private:
     std::string ip_{"localhost"};
     int port_{0};
@@ -286,18 +293,33 @@ private:
     std::mutex mutex_;
 };
 
+LicenseValidator* validate_{nullptr};
+
 } // namespace
 
 bool verify(const std::string& ip, int port, int period)
 {
-    static LicenseValidator validate_{ip, port, period};
+    if (!validate_) 
+    {
+        validate_ = new LicenseValidator(ip, port, period);
+    }
 
     auto cpu_id = get_cpuid_info();
     auto mac_addrs = get_all_mac_addresses();
-    auto result = validate_.send_auth_req_http_msg(cpu_id, mac_addrs);
+    auto result = validate_->send_auth_req_http_msg(cpu_id, mac_addrs);
+
+    if (result)
+    {
+        validate_->run();
+    }
     
-    signal(SIGINT, [](int){ validate_.destory(); });
-    return true;
+    return result;
+}
+
+void cleanup()
+{
+    delete validate_;
+    validate_ = nullptr;
 }
 
 } // namespace lic

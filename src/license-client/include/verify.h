@@ -7,6 +7,7 @@ namespace lic
 {
 
 bool verify(const std::string& ip, int port=8442, int period=30);
+void cleanup();
 
 } // namespace lic
 

@@ -15,12 +15,12 @@ void build_auth_rsp_msg(::nlohmann::json& rsp, const std::string& message, const
 {
     if (success)
     {
-        rsp["status"] = "Success";
+        rsp["status"] = "success";
         rsp["uuid"] = instance_id;
     }
     else
     {
-        rsp["status"] = "Failure";
+        rsp["status"] = "failure";
     }
     rsp["message"] = message;
 }

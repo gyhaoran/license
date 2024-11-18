@@ -1,0 +1,2 @@
+2024-11-18 11:35:58.432 ERROR connect 127.0.0.1:8442 failed! [HttpClient.cpp:216:http_client_connect]
+2024-11-18 11:37:51.046 ERROR connect 127.0.0.1:8442 failed! [HttpClient.cpp:216:http_client_connect]

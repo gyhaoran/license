@@ -1,4 +1,4 @@
-project(licenseclipy)
+project(licensepy)
 
 # Find Python and pybind11
 find_package(Python3 REQUIRED COMPONENTS Development Interpreter)
