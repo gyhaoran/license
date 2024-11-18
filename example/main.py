@@ -15,9 +15,9 @@ signal.signal(signal.SIGSEGV, signal_handler)  # kill
 
 
 def app_entry():
-    for i in range(300):
-        print(f"time {i}s")
-        time.sleep(1)
+    for i in range(200):
+        print(f"time {i+10}s")
+        time.sleep(10)
 
 
 def main():

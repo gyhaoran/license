@@ -9,6 +9,8 @@ namespace lic
 bool verify(const std::string& ip, int port=8442, int period=30);
 void cleanup();
 
+bool verify_press(const std::string& ip, int port=8442, int period=30);
+
 } // namespace lic
 
 #endif /* AA1F2D3E_08F7_460F_B09C_8FA9E37EA234 */

@@ -2,6 +2,7 @@ project(licensecli)
 
 find_package(OpenSSL REQUIRED)
 find_package(libhv REQUIRED)
+find_package(TBB REQUIRED)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -19,13 +20,20 @@ target_link_libraries(${PROJECT_NAME}
     OpenSSL::SSL OpenSSL::Crypto
 )
 
+add_executable(press_tool ${CMAKE_CURRENT_SOURCE_DIR}/press_tool.cpp)
+target_link_libraries(press_tool  PRIVATE TBB::tbb ${PROJECT_NAME})
+
 add_subdirectory(python)
 
 # Install rules
 install(TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION license-client/lib
-)
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                GROUP_READ GROUP_EXECUTE
+                WORLD_READ WORLD_EXECUTE)
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/license-client/lib"
-)
+install(FILES ${LIBHV_PATH}/lib/libhv.so
+        DESTINATION license-client/lib
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                    GROUP_READ GROUP_EXECUTE
+                    WORLD_READ WORLD_EXECUTE)

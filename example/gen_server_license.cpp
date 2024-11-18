@@ -109,7 +109,7 @@ void generate_license(const std::string& private_key_path, const std::string& li
         {"is_server", true},
         {"issue_date", "20240101 000000"},
         {"expire_date", "20250101 000000"},
-        {"max_instance", 2},
+        {"max_instance", 100000},
         {"devices", {device_hash_1, device_hash_2}},
     };
 

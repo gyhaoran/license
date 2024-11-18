@@ -99,7 +99,6 @@ struct LicenseValidator
 
     ~LicenseValidator()
     {
-        std::cout << "LicenseValidator destory\n";
         stop();
     }
 
@@ -138,12 +137,11 @@ struct LicenseValidator
 private:
     bool handle_success_rsp(const json& msg)
     {
-        if (!msg.contains("uuid"))
+        if (!msg.contains("uuid") && !msg["uuid"].is_string())
         {
             std::cerr << "License validate failure: rcv error msg from license server\n";
             return false;
         }
-        std::cout << "License validate success\n";
 
         inst_id_ = msg["uuid"].get<std::string>();
         return true;
@@ -320,6 +318,17 @@ void cleanup()
 {
     delete validate_;
     validate_ = nullptr;
+}
+
+bool verify_press(const std::string& ip, int port, int period)
+{
+    LicenseValidator validate(ip, port, period);
+
+    auto cpu_id = get_cpuid_info();
+    auto mac_addrs = get_all_mac_addresses();
+    auto result = validate.send_auth_req_http_msg(cpu_id, mac_addrs);
+
+    return result;
 }
 
 } // namespace lic

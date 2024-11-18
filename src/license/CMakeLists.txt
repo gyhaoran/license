@@ -19,7 +19,9 @@ target_link_libraries(${PROJECT_NAME} OpenSSL::SSL OpenSSL::Crypto)
 # Install rules
 install(TARGETS ${PROJECT_NAME}
     DESTINATION license-server/lib
-)
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                GROUP_READ GROUP_EXECUTE
+                WORLD_READ WORLD_EXECUTE)
 
 # install(FILES include/verify.h include/device.h
 #     DESTINATION include

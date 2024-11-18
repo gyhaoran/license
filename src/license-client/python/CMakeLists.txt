@@ -26,8 +26,24 @@ target_link_libraries(${PROJECT_NAME} licensecli ${Python3_LIBRARIES})
 # Install rules
 install(TARGETS ${PROJECT_NAME}
     DESTINATION license-client/lib
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+    GROUP_READ GROUP_EXECUTE
+    WORLD_READ WORLD_EXECUTE
 )
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/license-client/lib"
-)
+function(install_with_symlink_and_target lib dest_dir)
+    execute_process(COMMAND readlink -f ${lib} OUTPUT_VARIABLE real_file OUTPUT_STRIP_TRAILING_WHITESPACE)
+    install(FILES ${lib} DESTINATION ${dest_dir} 
+            PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                        GROUP_READ GROUP_EXECUTE
+                        WORLD_READ WORLD_EXECUTE)
+
+    install(FILES ${real_file} DESTINATION ${dest_dir}
+            PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                        GROUP_READ GROUP_EXECUTE
+                        WORLD_READ WORLD_EXECUTE)
+endfunction()
+
+foreach(lib ${Python3_LIBRARIES})
+    install_with_symlink_and_target(${lib} license-client/lib)
+endforeach()
