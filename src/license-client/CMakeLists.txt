@@ -33,3 +33,30 @@ install(TARGETS ${PROJECT_NAME}
 install(FILES ${LIBHV_PATH}/lib/libhv.so
         DESTINATION license-client/lib
 )
+
+function(install_real_files_from_targets targets dest_dir)
+    foreach(target ${targets})
+        if (TARGET ${target})
+            get_target_property(target_path ${target} IMPORTED_LOCATION)
+
+            if (NOT target_path)
+                message(FATAL_ERROR "Failed to get the IMPORTED_LOCATION of ${target}")
+            endif()
+
+            execute_process(COMMAND readlink -f ${target_path} OUTPUT_VARIABLE real_file OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+            install(FILES ${target_path} DESTINATION ${dest_dir})
+
+            if (NOT "${target_path}" STREQUAL "${real_file}")
+                install(FILES ${real_file} DESTINATION ${dest_dir})
+            endif()
+        else()
+            message(FATAL_ERROR "Target ${target} not found!")
+        endif()
+    endforeach()
+endfunction()
+
+install_real_files_from_targets(
+    "OpenSSL::SSL;OpenSSL::Crypto"
+    license-client/lib
+)

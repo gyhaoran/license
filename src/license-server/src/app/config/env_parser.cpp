@@ -31,17 +31,17 @@ std::string EnvParser::get_data_path()
     return std::string(data_path) + "/info.dat";
 }
 
-std::string EnvParser::get_server_key_path()
+std::string EnvParser::get_server_sig_path()
 {
     const char* data_path = std::getenv("ICELL_LIC_SERVER_DATA");
 
     if (data_path == nullptr) 
     {
         LOG_WARN("Fail to get data path");
-        return "server.key";
+        return "license_server.sig";
     }
 
-    return std::string(data_path) + "/server.key";
+    return std::string(data_path) + "/license_server.sig";
 }
 
 std::string EnvParser::get_server_cert_path()
@@ -51,10 +51,10 @@ std::string EnvParser::get_server_cert_path()
     if (data_path == nullptr) 
     {
         LOG_WARN("Fail to get data path");
-        return "server.cert";
+        return "server_cert.pem";
     }
 
-    return std::string(data_path) + "/server.cert";
+    return std::string(data_path) + "/server_cert.pem";
 }
 
 } // namespace lic

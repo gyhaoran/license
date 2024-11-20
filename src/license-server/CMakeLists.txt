@@ -1,4 +1,4 @@
-project(license-server)
+project(license_server)
 
 find_package(OpenSSL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS serialization)

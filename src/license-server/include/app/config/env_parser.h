@@ -11,7 +11,7 @@ struct EnvParser
     static std::string get_license_path();
     static std::string get_data_path();
 
-    static std::string get_server_key_path();
+    static std::string get_server_sig_path();
     static std::string get_server_cert_path();
 };
 

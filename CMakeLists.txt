@@ -24,6 +24,6 @@ install(FILES config/env.sh
     DESTINATION ${CMAKE_INSTALL_PREFIX}/license-server
 )
 
-install(FILES config/license.dat
+install(FILES config/license.dat config/license_server.sig config/server_cert.pem
     DESTINATION ${CMAKE_INSTALL_PREFIX}/license-server/data
 )

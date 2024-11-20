@@ -6,8 +6,12 @@
 #include "service/keep_alive_service.h"
 #include "service/serialization_service.h"
 #include "infra/log/log.h"
+#include "infra/sign/signature.h"
 
 namespace lic
+{
+
+namespace
 {
 
 void init_entry()
@@ -22,9 +26,25 @@ void init_entry()
     } 
 }
 
+void verify_license_server_sig()
+{
+    auto sig_file = EnvParser::get_server_sig_path();
+    auto cert_file = EnvParser::get_server_cert_path();
+    
+    if (!verify_sig(sig_file, cert_file))
+    {
+        std::cerr << "package sig check failed, exit.\n";
+        std::exit(1);
+    }
+}
+
+} // namespace
+
 void main_entry(int argc, char** argv)
 {
+    verify_license_server_sig();
     ArgParser::parse_arguments(argc, argv);
+
     init_entry();
     
     SerializationService service(EnvParser::get_data_path());
